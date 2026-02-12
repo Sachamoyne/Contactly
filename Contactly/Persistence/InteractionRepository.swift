@@ -29,6 +29,12 @@ final class InteractionRepository {
         save()
     }
 
+    func update(_ interaction: Interaction) {
+        guard let index = interactions.firstIndex(where: { $0.id == interaction.id }) else { return }
+        interactions[index] = interaction
+        save()
+    }
+
     func delete(_ interaction: Interaction) {
         interactions.removeAll { $0.id == interaction.id }
         save()
@@ -64,5 +70,55 @@ final class InteractionRepository {
             Calendar.current.isDate($0.startDate, equalTo: startDate, toGranularity: .minute)
         }
     }
-}
 
+    func getPendingFollowUps() -> [Interaction] {
+        guard let endOfDay = Calendar.current.date(
+            bySettingHour: 23,
+            minute: 59,
+            second: 59,
+            of: Date()
+        ) else {
+            return []
+        }
+
+        return interactions
+            .filter { interaction in
+                guard let followUpDate = interaction.followUpDate else { return false }
+                return followUpDate <= endOfDay
+            }
+            .sorted { (lhs, rhs) in
+                guard let left = lhs.followUpDate, let right = rhs.followUpDate else {
+                    return lhs.createdAt < rhs.createdAt
+                }
+                return left < right
+            }
+    }
+
+    func getLastInteraction(for contactId: UUID) -> Interaction? {
+        interactions
+            .filter { $0.contactId == contactId }
+            .max(by: { $0.startDate < $1.startDate })
+    }
+
+    func getRelationshipStatus(for contactId: UUID) -> (status: String, daysSince: Int?) {
+        guard let lastInteraction = getLastInteraction(for: contactId) else {
+            return ("No interactions yet", nil)
+        }
+
+        let days = Calendar.current.dateComponents(
+            [.day],
+            from: Calendar.current.startOfDay(for: lastInteraction.startDate),
+            to: Calendar.current.startOfDay(for: Date())
+        ).day ?? 0
+
+        if days <= 14 {
+            return ("Strong", days)
+        }
+
+        if days <= 60 {
+            return ("Medium", days)
+        }
+
+        return ("Weak", days)
+    }
+}

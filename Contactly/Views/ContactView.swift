@@ -15,6 +15,23 @@ struct ContactView: View {
         Array(interactionRepository.listByContact(contactId: currentContact.id).prefix(3))
     }
 
+    private var relationshipStatus: (status: String, daysSince: Int?) {
+        interactionRepository.getRelationshipStatus(for: currentContact.id)
+    }
+
+    private var relationshipColor: Color {
+        switch relationshipStatus.status {
+        case "Strong":
+            return .green
+        case "Medium":
+            return .orange
+        case "Weak":
+            return .red
+        default:
+            return .secondary
+        }
+    }
+
     var body: some View {
         List {
             // MARK: Header
@@ -35,6 +52,31 @@ struct ContactView: View {
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
                 .padding(.vertical, 8)
+            }
+
+            Section("Relationship") {
+                if let daysSince = relationshipStatus.daysSince {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(relationshipColor)
+                                .frame(width: 10, height: 10)
+
+                            Text(relationshipStatus.status)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                        }
+
+                        Text("Last contact: \(daysSince) day\(daysSince == 1 ? "" : "s") ago")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 2)
+                } else {
+                    Text("No interactions recorded")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             // MARK: Contact Info

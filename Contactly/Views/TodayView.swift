@@ -18,6 +18,15 @@ private struct InteractionContext: Identifiable {
     }
 }
 
+private struct PendingFollowUpItem: Identifiable {
+    let interaction: Interaction
+    let contact: Contact
+
+    var id: UUID {
+        interaction.id
+    }
+}
+
 struct TodayView: View {
     var meetingService: MeetingService
     var contactsViewModel: ContactsViewModel
@@ -58,9 +67,17 @@ struct TodayView: View {
         Array(viewModel.meetingEvents.dropFirst())
     }
 
+    private var pendingFollowUps: [PendingFollowUpItem] {
+        interactionRepository.getPendingFollowUps().compactMap { interaction in
+            guard let contact = contactForInteraction(interaction) else { return nil }
+            return PendingFollowUpItem(interaction: interaction, contact: contact)
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppTheme.spacingLarge) {
+                followUpsSection
                 todaysMeetingsSection
                 manualMeetingsSection
             }
@@ -193,6 +210,21 @@ struct TodayView: View {
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
             evaluateAfterMeetingPrompt()
+        }
+    }
+
+    @ViewBuilder
+    private var followUpsSection: some View {
+        if !pendingFollowUps.isEmpty {
+            VStack(alignment: .leading, spacing: AppTheme.spacingMedium) {
+                Text("Follow Ups")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                ForEach(pendingFollowUps) { item in
+                    followUpRow(item)
+                }
+            }
         }
     }
 
@@ -416,6 +448,60 @@ struct TodayView: View {
         )
     }
 
+    private func followUpRow(_ item: PendingFollowUpItem) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: AppTheme.spacingSmall) {
+                AvatarView(contact: item.contact, size: 42)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.contact.fullName.isEmpty ? "Unknown Contact" : item.contact.fullName)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    if let followUpDate = item.interaction.followUpDate {
+                        Text("Follow-up: \(followUpDate.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            Text(notesPreview(item.interaction.notes))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            HStack(spacing: 8) {
+                NavigationLink(value: item.contact) {
+                    Text("Open")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.accent)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(AppTheme.chipBackground))
+                }
+                .buttonStyle(.plain)
+
+                Button("Mark Done") {
+                    markFollowUpDone(item.interaction)
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(AppTheme.chipBackground))
+            }
+        }
+        .padding(AppTheme.spacingMedium)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground))
+        )
+    }
+
     private func contactForMeeting(_ meeting: MeetingEvent) -> Contact? {
         if let linked = meeting.linkedContact {
             return linked
@@ -520,5 +606,24 @@ struct TodayView: View {
     private func promptKey(meeting: MeetingEvent, contact: Contact) -> String {
         "\(meeting.id)|\(meeting.startDate.timeIntervalSince1970)|\(contact.id.uuidString)"
     }
-}
 
+    private func contactForInteraction(_ interaction: Interaction) -> Contact? {
+        contactsViewModel.repository.contacts.first { $0.id == interaction.contactId }
+    }
+
+    private func markFollowUpDone(_ interaction: Interaction) {
+        var updated = interaction
+        updated.followUpDate = nil
+        interactionRepository.update(updated)
+    }
+
+    private func notesPreview(_ notes: String) -> String {
+        let trimmed = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "No notes" }
+        if trimmed.count <= 90 {
+            return trimmed
+        }
+        let index = trimmed.index(trimmed.startIndex, offsetBy: 90)
+        return "\(trimmed[..<index])..."
+    }
+}
