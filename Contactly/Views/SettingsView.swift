@@ -1,18 +1,12 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var settings: ReminderSettings
-    private let repository: SettingsRepository
-
-    init(repository: SettingsRepository = SettingsRepository()) {
-        self.repository = repository
-        self._settings = State(initialValue: repository.load())
-    }
+    @Bindable var repository: SettingsRepository
 
     var body: some View {
         Form {
             Section("Reminder Delay") {
-                Picker("Notify me", selection: $settings.delayMinutes) {
+                Picker("Notify me", selection: $repository.settings.delayMinutes) {
                     Text("5 minutes before").tag(5)
                     Text("10 minutes before").tag(10)
                     Text("15 minutes before").tag(15)
@@ -22,9 +16,9 @@ struct SettingsView: View {
             }
 
             Section("Quiet Hours") {
-                Toggle("Enable Quiet Hours", isOn: $settings.quietHours.isEnabled)
+                Toggle("Enable Quiet Hours", isOn: $repository.settings.quietHours.isEnabled)
 
-                if settings.quietHours.isEnabled {
+                if repository.settings.quietHours.isEnabled {
                     DatePicker(
                         "Start",
                         selection: quietHoursStartBinding,
@@ -39,20 +33,20 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
-        .onChange(of: settings) {
-            repository.save(settings)
+        .onChange(of: repository.settings) {
+            repository.save()
         }
     }
 
     private var quietHoursStartBinding: Binding<Date> {
         Binding(
             get: {
-                dateFrom(hour: settings.quietHours.startHour, minute: settings.quietHours.startMinute)
+                dateFrom(hour: repository.settings.quietHours.startHour, minute: repository.settings.quietHours.startMinute)
             },
             set: { newDate in
                 let components = Calendar.current.dateComponents([.hour, .minute], from: newDate)
-                settings.quietHours.startHour = components.hour ?? 22
-                settings.quietHours.startMinute = components.minute ?? 0
+                repository.settings.quietHours.startHour = components.hour ?? 22
+                repository.settings.quietHours.startMinute = components.minute ?? 0
             }
         )
     }
@@ -60,12 +54,12 @@ struct SettingsView: View {
     private var quietHoursEndBinding: Binding<Date> {
         Binding(
             get: {
-                dateFrom(hour: settings.quietHours.endHour, minute: settings.quietHours.endMinute)
+                dateFrom(hour: repository.settings.quietHours.endHour, minute: repository.settings.quietHours.endMinute)
             },
             set: { newDate in
                 let components = Calendar.current.dateComponents([.hour, .minute], from: newDate)
-                settings.quietHours.endHour = components.hour ?? 7
-                settings.quietHours.endMinute = components.minute ?? 0
+                repository.settings.quietHours.endHour = components.hour ?? 7
+                repository.settings.quietHours.endMinute = components.minute ?? 0
             }
         )
     }

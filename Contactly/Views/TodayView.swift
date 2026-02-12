@@ -1,14 +1,15 @@
 import SwiftUI
 
 struct TodayView: View {
-    @ObservedObject var calendarService: CalendarService
-    @ObservedObject var notificationService: NotificationService
+    var calendarService: CalendarService
+    var notificationService: NotificationService
+    var settingsRepository: SettingsRepository
 
     @State private var isLoading = true
 
     var body: some View {
         Group {
-            if !calendarService.hasAccess {
+            if !calendarService.accessGranted {
                 permissionDeniedView
             } else if isLoading {
                 ProgressView("Loading events...")
@@ -60,19 +61,21 @@ struct TodayView: View {
         isLoading = true
         defer { isLoading = false }
 
-        if !calendarService.hasAccess {
+        if !calendarService.accessGranted {
             let granted = await calendarService.requestAccess()
             guard granted else { return }
         }
 
-        let events = await calendarService.fetchNext24HoursEvents()
+        let events = calendarService.fetchTodayEvents()
 
-        // Auto-schedule reminders when events load
         await notificationService.checkAuthorizationStatus()
         if !notificationService.isAuthorized {
             _ = await notificationService.requestAuthorization()
         }
-        await notificationService.scheduleReminders(for: events)
+        await notificationService.scheduleReminders(
+            for: events,
+            settings: settingsRepository.settings
+        )
     }
 }
 
@@ -88,36 +91,26 @@ private struct EventRow: View {
                 Image(systemName: "clock")
                     .foregroundStyle(.secondary)
                     .font(.caption)
-                if event.isAllDay {
-                    Text("All Day")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(event.startDate, style: .time)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text("–")
-                        .foregroundStyle(.secondary)
-                    Text(event.endDate, style: .time)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                Text(event.startDate, style: .time)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text("–")
+                    .foregroundStyle(.secondary)
+                Text(event.endDate, style: .time)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
 
-            if let location = event.location, !location.isEmpty {
+            if !event.location.isEmpty {
                 HStack {
                     Image(systemName: "location")
                         .foregroundStyle(.secondary)
                         .font(.caption)
-                    Text(location)
+                    Text(event.location)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             }
-
-            Text(event.calendarName)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 4)
     }

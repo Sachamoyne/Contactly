@@ -40,9 +40,16 @@ final class ContactRepository {
         save()
     }
 
-    func delete(at offsets: IndexSet) {
-        contacts.remove(atOffsets: offsets)
+    func delete(at offsets: IndexSet, in sortedContacts: [Contact]) {
+        let idsToDelete = offsets.map { sortedContacts[$0].id }
+        contacts.removeAll { idsToDelete.contains($0.id) }
         save()
+    }
+
+    func sortedByName() -> [Contact] {
+        contacts.sorted {
+            $0.fullName.localizedCaseInsensitiveCompare($1.fullName) == .orderedAscending
+        }
     }
 
     static var preview: ContactRepository {

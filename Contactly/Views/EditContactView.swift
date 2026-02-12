@@ -168,8 +168,8 @@ struct EditContactView: View {
                 firstName: firstName.trimmingCharacters(in: .whitespaces),
                 lastName: lastName.trimmingCharacters(in: .whitespaces),
                 company: company.trimmingCharacters(in: .whitespaces),
-                phone: phone.trimmingCharacters(in: .whitespaces),
                 email: email.trimmingCharacters(in: .whitespaces),
+                phone: phone.trimmingCharacters(in: .whitespaces),
                 notes: notes,
                 tags: tags,
                 lastInteractionDate: hasLastInteraction ? (lastInteractionDate ?? Date()) : nil

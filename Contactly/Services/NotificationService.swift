@@ -1,16 +1,11 @@
-import UserNotifications
 import Foundation
+import Observation
+import UserNotifications
 
-@MainActor
-final class NotificationService: ObservableObject {
+@Observable
+final class NotificationService {
     private let center = UNUserNotificationCenter.current()
-    private let settingsRepo: SettingsRepository
-
-    @Published var isAuthorized = false
-
-    init(settingsRepo: SettingsRepository = SettingsRepository()) {
-        self.settingsRepo = settingsRepo
-    }
+    private(set) var isAuthorized = false
 
     func requestAuthorization() async -> Bool {
         do {
@@ -28,30 +23,22 @@ final class NotificationService: ObservableObject {
         isAuthorized = settings.authorizationStatus == .authorized
     }
 
-    func scheduleReminders(for events: [CalendarEvent]) async {
+    func scheduleReminders(for events: [CalendarEvent], settings: ReminderSettings) async {
         guard isAuthorized else { return }
 
-        // Remove previously scheduled reminders
         center.removeAllPendingNotificationRequests()
 
-        let reminderSettings = settingsRepo.load()
-
         for event in events {
-            guard !event.isAllDay else { continue }
-
             let fireDate = event.startDate.addingTimeInterval(
-                -Double(reminderSettings.delayMinutes * 60)
+                -Double(settings.delayMinutes * 60)
             )
 
-            // Don't schedule if the fire date is in the past
             guard fireDate > Date() else { continue }
-
-            // Don't schedule during quiet hours
-            guard !reminderSettings.quietHours.contains(fireDate) else { continue }
+            guard !settings.quietHours.contains(fireDate) else { continue }
 
             let content = UNMutableNotificationContent()
             content.title = "Upcoming: \(event.title)"
-            content.body = formatReminderBody(event: event, delayMinutes: reminderSettings.delayMinutes)
+            content.body = formatBody(event: event, delayMinutes: settings.delayMinutes)
             content.sound = .default
 
             let triggerDate = Calendar.current.dateComponents(
@@ -66,18 +53,14 @@ final class NotificationService: ObservableObject {
                 trigger: trigger
             )
 
-            do {
-                try await center.add(request)
-            } catch {
-                // Silently skip failed notification; don't crash
-            }
+            try? await center.add(request)
         }
     }
 
-    private func formatReminderBody(event: CalendarEvent, delayMinutes: Int) -> String {
+    private func formatBody(event: CalendarEvent, delayMinutes: Int) -> String {
         var body = "Starts in \(delayMinutes) minutes"
-        if let location = event.location, !location.isEmpty {
-            body += " at \(location)"
+        if !event.location.isEmpty {
+            body += " at \(event.location)"
         }
         return body
     }

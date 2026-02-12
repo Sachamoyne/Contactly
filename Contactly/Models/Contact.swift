@@ -1,6 +1,6 @@
 import Foundation
 
-struct Contact: Codable, Identifiable {
+struct Contact: Codable, Hashable, Identifiable {
     var id: UUID
     var firstName: String
     var lastName: String
@@ -9,10 +9,17 @@ struct Contact: Codable, Identifiable {
     var phone: String
     var notes: String
     var tags: [String]
+    var avatarPath: String?
     var createdAt: Date
+    var lastInteractionDate: Date?
 
     var fullName: String {
         [firstName, lastName].filter { !$0.isEmpty }.joined(separator: " ")
+    }
+
+    var initials: String {
+        let components = [firstName, lastName].filter { !$0.isEmpty }
+        return components.compactMap { $0.first.map(String.init) }.joined()
     }
 
     init(
@@ -24,7 +31,9 @@ struct Contact: Codable, Identifiable {
         phone: String = "",
         notes: String = "",
         tags: [String] = [],
-        createdAt: Date = Date()
+        avatarPath: String? = nil,
+        createdAt: Date = Date(),
+        lastInteractionDate: Date? = nil
     ) {
         self.id = id
         self.firstName = firstName
@@ -34,7 +43,9 @@ struct Contact: Codable, Identifiable {
         self.phone = phone
         self.notes = notes
         self.tags = tags
+        self.avatarPath = avatarPath
         self.createdAt = createdAt
+        self.lastInteractionDate = lastInteractionDate
     }
 
     static let preview = Contact(
