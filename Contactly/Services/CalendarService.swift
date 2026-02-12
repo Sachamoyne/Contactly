@@ -6,11 +6,19 @@ import Observation
 @MainActor
 final class CalendarService {
     private let store = EKEventStore()
+    private var pendingRefreshTask: Task<Void, Never>?
+    private var lastEventsFingerprint: String = ""
+
     private(set) var events: [CalendarEvent] = []
     private(set) var accessGranted = false
 
     init() {
         refreshAuthorizationStatus()
+        registerEventStoreObserver()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self, name: .EKEventStoreChanged, object: nil)
     }
 
     var authorizationStatus: EKAuthorizationStatus {
@@ -54,6 +62,7 @@ final class CalendarService {
     func fetchTodayEvents() -> [CalendarEvent] {
         guard accessGranted else {
             events = []
+            lastEventsFingerprint = ""
             return []
         }
 
@@ -124,4 +133,66 @@ final class CalendarService {
 
         return lowered.contains("@") ? lowered : nil
     }
+
+    private func registerEventStoreObserver() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleEventStoreChangedNotification),
+            name: .EKEventStoreChanged,
+            object: nil
+        )
+    }
+
+    private func scheduleRefreshAfterStoreChange() {
+        pendingRefreshTask?.cancel()
+        pendingRefreshTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                self?.handleEventStoreChange()
+            }
+        }
+    }
+
+    @objc private func handleEventStoreChangedNotification() {
+        scheduleRefreshAfterStoreChange()
+    }
+
+    private func handleEventStoreChange() {
+        refreshAuthorizationStatus()
+
+        guard accessGranted else {
+            let hadEvents = !events.isEmpty
+            events = []
+            if hadEvents {
+                notifyEventsDidChange()
+            }
+            return
+        }
+
+        let previousFingerprint = lastEventsFingerprint
+        let refreshedEvents = fetchTodayEvents()
+        let currentFingerprint = fingerprint(for: refreshedEvents)
+        lastEventsFingerprint = currentFingerprint
+        if currentFingerprint != previousFingerprint {
+            notifyEventsDidChange()
+            return
+        }
+
+        notifyEventsDidChange()
+    }
+
+    private func notifyEventsDidChange() {
+        NotificationCenter.default.post(name: .calendarServiceEventsDidChange, object: nil)
+    }
+
+    private func fingerprint(for events: [CalendarEvent]) -> String {
+        events
+            .map { "\($0.title)|\($0.startDate.timeIntervalSince1970)|\($0.endDate.timeIntervalSince1970)|\($0.location)" }
+            .joined(separator: "#")
+    }
+}
+
+extension Notification.Name {
+    static let calendarServiceEventsDidChange = Notification.Name("CalendarServiceEventsDidChange")
 }

@@ -6,6 +6,7 @@ import UserNotifications
 final class NotificationService {
     private let center = UNUserNotificationCenter.current()
     private(set) var isAuthorized = false
+    private let morningBriefingIdentifierPrefix = "morning-briefing-"
 
     func requestAuthorization() async -> Bool {
         do {
@@ -26,7 +27,13 @@ final class NotificationService {
     func scheduleReminders(for events: [CalendarEvent], settings: ReminderSettings) async {
         guard isAuthorized else { return }
 
-        center.removeAllPendingNotificationRequests()
+        let pending = await center.pendingNotificationRequests()
+        let eventReminderIDs = pending
+            .map(\.identifier)
+            .filter { $0.hasPrefix("event-") }
+        if !eventReminderIDs.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: eventReminderIDs)
+        }
 
         for event in events {
             let fireDate = event.startDate.addingTimeInterval(
@@ -57,11 +64,85 @@ final class NotificationService {
         }
     }
 
+    @MainActor
+    func scheduleMorningBriefing(calendarService: CalendarService) async {
+        await checkAuthorizationStatus()
+        guard isAuthorized else { return }
+
+        calendarService.refreshAuthorizationStatus()
+        guard calendarService.accessGranted else { return }
+
+        let todaysEvents = calendarService.fetchTodayEvents()
+        guard !todaysEvents.isEmpty else {
+            await removeTodayMorningBriefingIfNeeded()
+            return
+        }
+
+        let now = Date()
+        guard let todayAtEight = Calendar.current.date(
+            bySettingHour: 8,
+            minute: 0,
+            second: 0,
+            of: now
+        ) else { return }
+
+        if now >= todayAtEight {
+            return
+        }
+
+        let todayID = morningBriefingIdentifier(for: now)
+
+        let pending = await center.pendingNotificationRequests()
+        if pending.contains(where: { $0.identifier == todayID }) {
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Today's Meetings"
+        content.body = "You have \(todaysEvents.count) meetings today. Open to prepare."
+        content.sound = .default
+        content.userInfo = ["type": "morningBriefing"]
+
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: now)
+        let triggerDate = DateComponents(
+            year: components.year,
+            month: components.month,
+            day: components.day,
+            hour: 8,
+            minute: 0
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
+
+        let request = UNNotificationRequest(
+            identifier: todayID,
+            content: content,
+            trigger: trigger
+        )
+
+        try? await center.add(request)
+    }
+
     private func formatBody(event: CalendarEvent, delayMinutes: Int) -> String {
         var body = "Starts in \(delayMinutes) minutes"
         if !event.location.isEmpty {
             body += " at \(event.location)"
         }
         return body
+    }
+
+    private func morningBriefingIdentifier(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return "\(morningBriefingIdentifierPrefix)\(formatter.string(from: date))"
+    }
+
+    private func removeTodayMorningBriefingIfNeeded() async {
+        let todayID = morningBriefingIdentifier(for: Date())
+        let pending = await center.pendingNotificationRequests()
+        if pending.contains(where: { $0.identifier == todayID }) {
+            center.removePendingNotificationRequests(withIdentifiers: [todayID])
+        }
     }
 }

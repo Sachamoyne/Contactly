@@ -3,11 +3,16 @@ import SwiftUI
 struct ContactView: View {
     let contact: Contact
     var viewModel: ContactsViewModel
+    @Bindable var interactionRepository: InteractionRepository
     @State private var showingEdit = false
     @Environment(\.dismiss) private var dismiss
 
     private var currentContact: Contact {
         viewModel.repository.contacts.first { $0.id == contact.id } ?? contact
+    }
+
+    private var recentInteractions: [Interaction] {
+        Array(interactionRepository.listByContact(contactId: currentContact.id).prefix(3))
     }
 
     var body: some View {
@@ -29,6 +34,7 @@ struct ContactView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
+                .padding(.vertical, 8)
             }
 
             // MARK: Contact Info
@@ -58,13 +64,7 @@ struct ContactView: View {
                 Section("Tags") {
                     FlowLayout(spacing: 8) {
                         ForEach(currentContact.tags, id: \.self) { tag in
-                            Text(tag)
-                                .font(.subheadline)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(.blue.opacity(0.1))
-                                .foregroundStyle(.blue)
-                                .clipShape(Capsule())
+                            TagChip(text: tag)
                         }
                     }
                 }
@@ -75,6 +75,29 @@ struct ContactView: View {
                 Section("Notes") {
                     Text(currentContact.notes)
                         .font(.body)
+                }
+            }
+
+            if !recentInteractions.isEmpty {
+                Section("Recent Interactions") {
+                    ForEach(recentInteractions) { interaction in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(interaction.title)
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text(interaction.startDate.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Text(interaction.notes)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+                        .padding(.vertical, 2)
+                    }
                 }
             }
 
@@ -100,6 +123,7 @@ struct ContactView: View {
                 Button("Edit") {
                     showingEdit = true
                 }
+                .foregroundStyle(AppTheme.accent)
             }
         }
         .sheet(isPresented: $showingEdit) {

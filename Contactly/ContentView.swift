@@ -10,6 +10,7 @@ struct ContentView: View {
     var notificationService: NotificationService
     var settingsRepository: SettingsRepository
     var contactsViewModel: ContactsViewModel
+    var interactionRepository: InteractionRepository
 
     var body: some View {
         TabView {
@@ -18,7 +19,8 @@ struct ContentView: View {
                     meetingService: meetingService,
                     contactsViewModel: contactsViewModel,
                     notificationService: notificationService,
-                    settingsRepository: settingsRepository
+                    settingsRepository: settingsRepository,
+                    interactionRepository: interactionRepository
                 )
             }
             .tabItem {
@@ -26,7 +28,10 @@ struct ContentView: View {
             }
 
             NavigationStack {
-                ContactsListView(viewModel: contactsViewModel)
+                ContactsListView(
+                    viewModel: contactsViewModel,
+                    interactionRepository: interactionRepository
+                )
             }
             .tabItem {
                 Label("Contacts", systemImage: "person.2")
@@ -47,5 +52,6 @@ struct ContentView: View {
                 Label("Settings", systemImage: "gear")
             }
         }
+        .tint(AppTheme.accent)
     }
 }
