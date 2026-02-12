@@ -28,4 +28,9 @@ final class SettingsRepository {
         settings.delayMinutes = minutes
         save()
     }
+
+    func setCalendarProviders(_ providers: [CalendarProvider]) {
+        settings.calendarProviders = providers
+        save()
+    }
 }

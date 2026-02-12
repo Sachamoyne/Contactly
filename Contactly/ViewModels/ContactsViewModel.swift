@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 @Observable
 final class ContactsViewModel {
@@ -34,5 +35,9 @@ final class ContactsViewModel {
 
     func deleteContacts(at offsets: IndexSet) {
         repository.delete(at: offsets, in: filteredContacts)
+    }
+
+    func clearAllContacts() {
+        repository.clear()
     }
 }

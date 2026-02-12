@@ -1,0 +1,20 @@
+Required Info.plist keys
+- NSCalendarsFullAccessUsageDescription
+- GIDClientID (Google iOS Client ID)
+
+Required URL schemes
+- CFBundleURLTypes -> URL Schemes includes the reversed iOS client ID from Google Cloud (for example: com.googleusercontent.apps.1234567890-abcdef)
+
+Google Cloud Console setup
+1. Create or select a Google Cloud project.
+2. Enable Google Calendar API.
+3. Configure OAuth consent screen.
+4. Create OAuth 2.0 Client ID for iOS.
+5. Set iOS Bundle ID to the app bundle identifier.
+6. Copy iOS Client ID into Info.plist as GIDClientID.
+7. Copy reversed iOS Client ID into CFBundleURLTypes URL scheme.
+8. Add Google Calendar readonly scope: https://www.googleapis.com/auth/calendar.readonly.
+
+iOS capability settings
+- Keychain Sharing capability enabled (recommended for resilient token access across app lifecycle).
+- Associated Domains not required for this integration path.

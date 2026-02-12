@@ -1,28 +1,25 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var calendarService = CalendarService()
-    @State private var notificationService = NotificationService()
-    @State private var settingsRepository = SettingsRepository()
-    @State private var contactsViewModel = ContactsViewModel(repository: ContactRepository())
+    var calendarService: CalendarService
+    var googleCalendarService: GoogleCalendarService
+    var microsoftAuthService: MicrosoftAuthService
+    var userProfileStore: UserProfileStore
+    var calendarAggregatorService: CalendarAggregatorService
+    var meetingService: MeetingService
+    var notificationService: NotificationService
+    var settingsRepository: SettingsRepository
+    var contactsViewModel: ContactsViewModel
 
     var body: some View {
         TabView {
             NavigationStack {
                 TodayView(
-                    calendarService: calendarService,
+                    meetingService: meetingService,
+                    contactsViewModel: contactsViewModel,
                     notificationService: notificationService,
                     settingsRepository: settingsRepository
                 )
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        NavigationLink {
-                            SettingsView(repository: settingsRepository)
-                        } label: {
-                            Image(systemName: "gear")
-                        }
-                    }
-                }
             }
             .tabItem {
                 Label("Today", systemImage: "calendar")
@@ -33,6 +30,21 @@ struct ContentView: View {
             }
             .tabItem {
                 Label("Contacts", systemImage: "person.2")
+            }
+
+            NavigationStack {
+                SettingsView(
+                    repository: settingsRepository,
+                    contactsViewModel: contactsViewModel,
+                    userProfileStore: userProfileStore,
+                    googleCalendarService: googleCalendarService,
+                    microsoftAuthService: microsoftAuthService,
+                    appleCalendarService: calendarService,
+                    calendarAggregatorService: calendarAggregatorService
+                )
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gear")
             }
         }
     }

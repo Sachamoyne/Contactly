@@ -40,6 +40,11 @@ final class ContactRepository {
         save()
     }
 
+    func clear() {
+        contacts.removeAll()
+        save()
+    }
+
     func delete(at offsets: IndexSet, in sortedContacts: [Contact]) {
         let idsToDelete = offsets.map { sortedContacts[$0].id }
         contacts.removeAll { idsToDelete.contains($0.id) }
