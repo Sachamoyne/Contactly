@@ -45,8 +45,15 @@ final class MeetingService {
                     allEvents.append(contentsOf: calendarService.fetchTodaySyncedEvents())
                 }
             case .google:
-                let googleEvents = try await googleCalendarService.fetchUpcomingSyncedEvents(from: date, daysAhead: 1)
-                allEvents.append(contentsOf: googleEvents)
+                do {
+                    let googleEvents = try await googleCalendarService.fetchUpcomingSyncedEvents(from: date, daysAhead: 1)
+                    allEvents.append(contentsOf: googleEvents)
+                } catch {
+                    if isRecoverableCalendarSyncError(error) {
+                        continue
+                    }
+                    throw error
+                }
             }
         }
 
@@ -122,5 +129,15 @@ final class MeetingService {
         }
 
         return unique
+    }
+
+    private func isRecoverableCalendarSyncError(_ error: Error) -> Bool {
+        guard let calendarError = error as? GoogleCalendarServiceError else { return false }
+        switch calendarError {
+        case .notSignedIn, .unauthorized, .tokenMissing:
+            return true
+        default:
+            return false
+        }
     }
 }

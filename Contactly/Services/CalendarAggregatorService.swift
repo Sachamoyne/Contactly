@@ -33,13 +33,18 @@ final class CalendarAggregatorService {
             appleService.refreshAuthorizationStatus()
             guard appleService.accessGranted else {
                 events = []
-                lastErrorMessage = "Apple Calendar access is disabled."
                 return []
             }
 
-            let appleEvents = appleService.fetchTodayEvents()
-            events = deduplicatedAndSorted(appleEvents)
-            return events
+            do {
+                let appleEvents = try await appleService.fetchTodayEvents()
+                events = deduplicatedAndSorted(appleEvents)
+                return events
+            } catch {
+                events = []
+                lastErrorMessage = "Unable to fetch Apple Calendar events."
+                return []
+            }
 
         case .google:
             do {

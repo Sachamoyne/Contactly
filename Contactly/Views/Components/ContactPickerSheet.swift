@@ -13,6 +13,11 @@ struct ContactPickerSheet: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> CNContactPickerViewController {
         let picker = CNContactPickerViewController()
         picker.delegate = context.coordinator
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            picker.modalPresentationStyle = .formSheet
+        } else {
+            picker.modalPresentationStyle = .automatic
+        }
         picker.displayedPropertyKeys = [
             CNContactGivenNameKey,
             CNContactFamilyNameKey,

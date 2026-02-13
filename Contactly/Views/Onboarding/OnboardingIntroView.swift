@@ -33,7 +33,7 @@ struct OnboardingIntroView: View {
                     .lineLimit(2)
 
                 Text(
-                    "Contactly prepares you before meetings,\ntracks interactions,\nand reminds you to follow up."
+                    "Contactly prepares you before interactions,\ntracks interactions,\nand reminds you to follow up."
                 )
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

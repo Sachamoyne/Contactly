@@ -15,7 +15,7 @@ struct PrepView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppTheme.spacingLarge) {
                 headerCard
-                lastMeetingCard
+                lastInteractionCard
                 allNotesCard
                 quickFieldsCard
             }
@@ -26,7 +26,7 @@ struct PrepView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("Add meeting notes") {
+                Button("Add interaction notes") {
                     showingAddInteraction = true
                 }
                 .foregroundStyle(AppTheme.accent)
@@ -73,9 +73,9 @@ struct PrepView: View {
         )
     }
 
-    private var lastMeetingCard: some View {
+    private var lastInteractionCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Last Meeting Notes")
+            Text("Last Interaction Notes")
                 .font(.headline)
 
             if let lastInteraction {
@@ -164,4 +164,3 @@ struct PrepView: View {
         return "N/A"
     }
 }
-

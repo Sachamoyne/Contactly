@@ -26,7 +26,7 @@ struct OnboardingCompletionView: View {
                 Text("You're ready.")
                     .font(.system(size: 32, weight: .bold))
 
-                Text("You’ll now get context before meetings\nand smart follow-up reminders.")
+                Text("You’ll now get context before interactions\nand smart follow-up reminders.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 

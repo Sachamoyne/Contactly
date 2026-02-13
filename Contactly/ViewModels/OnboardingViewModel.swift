@@ -136,8 +136,16 @@ final class OnboardingViewModel {
             return
         }
 
-        let importedContacts = await contactImportService.fetchAllContacts()
+        let importedContacts: [Contact]
+        do {
+            let rawContacts = try await contactImportService.fetchAllContactsAsync()
+            importedContacts = contactImportService.mapContacts(rawContacts)
+        } catch {
+            errorMessage = "Unable to import all contacts right now."
+            return
+        }
         saveUniqueContacts(importedContacts)
+        print("[ContactImport] Imported \(importedContacts.count) contacts during onboarding (all).")
         selectedContactSyncOption = .all
         persistProfile()
         currentStep = .completion
@@ -174,28 +182,40 @@ final class OnboardingViewModel {
     }
 
     private func saveUniqueContacts(_ contacts: [Contact]) {
-        let existingKeys = Set(
-            contactRepository.contacts.map { contact in
-                duplicateKey(name: contact.fullName, email: contact.email)
-            }
+        var seenEmails = Set(
+            contactRepository.contacts.compactMap { normalizedEmail($0.email) }
+        )
+        var seenPhones = Set(
+            contactRepository.contacts.compactMap { normalizedPhone($0.phone) }
         )
 
-        var seen = existingKeys
-
         for contact in contacts {
-            let key = duplicateKey(name: contact.fullName, email: contact.email)
-            if seen.contains(key) {
+            let email = normalizedEmail(contact.email)
+            let phone = normalizedPhone(contact.phone)
+            let isDuplicateByEmail = email.map { seenEmails.contains($0) } ?? false
+            let isDuplicateByPhone = phone.map { seenPhones.contains($0) } ?? false
+
+            if isDuplicateByEmail || isDuplicateByPhone {
                 continue
             }
             contactRepository.add(contact)
-            seen.insert(key)
+            if let email {
+                seenEmails.insert(email)
+            }
+            if let phone {
+                seenPhones.insert(phone)
+            }
         }
     }
 
-    private func duplicateKey(name: String, email: String) -> String {
-        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return "\(normalizedName)|\(normalizedEmail)"
+    private func normalizedEmail(_ email: String) -> String? {
+        let value = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return value.isEmpty ? nil : value
+    }
+
+    private func normalizedPhone(_ phone: String) -> String? {
+        let value = phone.filter { $0.isWholeNumber }
+        return value.isEmpty ? nil : value
     }
 
     private func isValidEmail(_ email: String) -> Bool {

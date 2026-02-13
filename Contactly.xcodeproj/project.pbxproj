@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4F636E302F3E2316001F5DE4 /* MSAL in Frameworks */ = {isa = PBXBuildFile; productRef = 4F636E2F2F3E2316001F5DE4 /* MSAL */; };
 		4F636E332F3E2390001F5DE4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 4F636E322F3E2390001F5DE4 /* GoogleSignIn */; };
 		4F636E352F3E2393001F5DE4 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 4F636E342F3E2393001F5DE4 /* GoogleSignInSwift */; };
 /* End PBXBuildFile section */
@@ -72,7 +71,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				4F636E352F3E2393001F5DE4 /* GoogleSignInSwift in Frameworks */,
-				4F636E302F3E2316001F5DE4 /* MSAL in Frameworks */,
 				4F636E332F3E2390001F5DE4 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -142,7 +140,6 @@
 			);
 			name = Contactly;
 			packageProductDependencies = (
-				4F636E2F2F3E2316001F5DE4 /* MSAL */,
 				4F636E322F3E2390001F5DE4 /* GoogleSignIn */,
 				4F636E342F3E2393001F5DE4 /* GoogleSignInSwift */,
 			);
@@ -229,7 +226,6 @@
 			mainGroup = 4F636BAB2F3DCF96001F5DE4;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				4F636E2D2F3E22D4001F5DE4 /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */,
 				4F636E312F3E2385001F5DE4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -623,14 +619,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		4F636E2D2F3E22D4001F5DE4 /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/AzureAD/microsoft-authentication-library-for-objc.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.8.2;
-			};
-		};
 		4F636E312F3E2385001F5DE4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/GoogleSignIn-iOS.git";
@@ -642,11 +630,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		4F636E2F2F3E2316001F5DE4 /* MSAL */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4F636E2D2F3E22D4001F5DE4 /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */;
-			productName = MSAL;
-		};
 		4F636E322F3E2390001F5DE4 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 4F636E312F3E2385001F5DE4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;

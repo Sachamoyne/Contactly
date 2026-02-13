@@ -52,9 +52,9 @@ final class TodayViewModel: ObservableObject {
             manualMeetings = meetingService.manualMeetings(for: date)
             errorMessage = nil
         } catch {
-            meetingEvents = []
             manualMeetings = meetingService.manualMeetings(for: date)
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? "Unable to sync meetings."
+            errorMessage = nil
+            print("Today refresh sync error: \(error)")
         }
     }
 

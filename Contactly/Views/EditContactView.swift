@@ -18,6 +18,7 @@ struct EditContactView: View {
     @State private var newTag: String = ""
     @State private var lastInteractionDate: Date?
     @State private var hasLastInteraction: Bool
+    @State private var relationshipType: RelationshipType
     @State private var avatarPath: String?
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedAvatarImage: UIImage?
@@ -39,6 +40,7 @@ struct EditContactView: View {
         _tags = State(initialValue: contact?.tags ?? [])
         _lastInteractionDate = State(initialValue: contact?.lastInteractionDate)
         _hasLastInteraction = State(initialValue: contact?.lastInteractionDate != nil)
+        _relationshipType = State(initialValue: contact?.relationshipType ?? .perso)
         _avatarPath = State(initialValue: contact?.avatarPath)
     }
 
@@ -83,6 +85,15 @@ struct EditContactView: View {
                 Section("Company") {
                     TextField("Company", text: $company)
                         .textContentType(.organizationName)
+                }
+
+                Section("Relationship") {
+                    Picker("Type", selection: $relationshipType) {
+                        ForEach(RelationshipType.allCases, id: \.self) { type in
+                            Text(type.displayName).tag(type)
+                        }
+                    }
+                    .pickerStyle(.segmented)
                 }
 
                 Section("Contact Info") {
@@ -250,6 +261,7 @@ struct EditContactView: View {
             updated.tags = tags
             updated.lastInteractionDate = hasLastInteraction ? (lastInteractionDate ?? Date()) : nil
             updated.avatarPath = finalAvatarPath
+            updated.relationshipType = relationshipType
             viewModel.updateContact(updated)
         } else {
             let contact = Contact(
@@ -262,7 +274,8 @@ struct EditContactView: View {
                 notes: notes,
                 tags: tags,
                 avatarPath: finalAvatarPath,
-                lastInteractionDate: hasLastInteraction ? (lastInteractionDate ?? Date()) : nil
+                lastInteractionDate: hasLastInteraction ? (lastInteractionDate ?? Date()) : nil,
+                relationshipType: relationshipType
             )
             viewModel.addContact(contact)
         }
@@ -291,4 +304,3 @@ struct EditContactView: View {
         }
     }
 }
-

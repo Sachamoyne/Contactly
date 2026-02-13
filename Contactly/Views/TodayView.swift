@@ -37,7 +37,6 @@ struct TodayView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var viewModel: TodayViewModel
-    @State private var showingErrorAlert = false
     @State private var showingManualMeetingSheet = false
     @State private var editingManualMeeting: ManualMeeting?
     @State private var prepContext: PrepContext?
@@ -171,13 +170,6 @@ struct TodayView: View {
         .sheet(item: $createdContactForEditing) { contact in
             EditContactView(viewModel: contactsViewModel, contact: contact)
         }
-        .alert("Meeting Sync", isPresented: $showingErrorAlert) {
-            Button("OK", role: .cancel) {
-                viewModel.errorMessage = nil
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
-        }
         .alert("Contact already exists", isPresented: $showingContactExistsAlert) {
             Button("OK", role: .cancel) { }
         }
@@ -212,9 +204,6 @@ struct TodayView: View {
             await refresh()
             evaluateAfterMeetingPrompt()
         }
-        .onChange(of: viewModel.errorMessage) { _, newValue in
-            showingErrorAlert = newValue != nil
-        }
         .onReceive(NotificationCenter.default.publisher(for: .calendarServiceEventsDidChange)) { _ in
             Task {
                 await refresh()
@@ -236,7 +225,7 @@ struct TodayView: View {
             if pendingFollowUps.isEmpty {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green.opacity(0.7))
+                        .foregroundStyle(AppColors.personal.opacity(0.7))
                     Text("You're all caught up.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -696,7 +685,9 @@ struct TodayView: View {
     }
 
     private func refresh() async {
-        await viewModel.refresh()
+        await Task { @MainActor in
+            await viewModel.refresh()
+        }.value
         await scheduleNotifications()
     }
 
@@ -770,7 +761,7 @@ struct TodayView: View {
     private func colorForRelationshipStatus(_ status: String) -> Color {
         switch status {
         case "Strong":
-            return .green
+            return AppColors.personal
         case "Medium":
             return .orange
         case "Weak":

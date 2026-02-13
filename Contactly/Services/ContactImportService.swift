@@ -24,7 +24,7 @@ final class ContactImportService {
         }
     }
 
-    func fetchAllContacts() async -> [Contact] {
+    func fetchAllContacts() throws -> [CNContact] {
         let keys: [CNKeyDescriptor] = [
             CNContactIdentifierKey as CNKeyDescriptor,
             CNContactGivenNameKey as CNKeyDescriptor,
@@ -34,18 +34,24 @@ final class ContactImportService {
             CNContactPhoneNumbersKey as CNKeyDescriptor
         ]
 
-        return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let request = CNContactFetchRequest(keysToFetch: keys)
-                var contacts: [Contact] = []
+        let request = CNContactFetchRequest(keysToFetch: keys)
+        var contacts: [CNContact] = []
 
+        try store.enumerateContacts(with: request) { cnContact, _ in
+            contacts.append(cnContact)
+        }
+
+        return contacts
+    }
+
+    func fetchAllContactsAsync() async throws -> [CNContact] {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
                 do {
-                    try self.store.enumerateContacts(with: request) { cnContact, _ in
-                        contacts.append(self.mapToContact(cnContact))
-                    }
+                    let contacts = try self.fetchAllContacts()
                     continuation.resume(returning: contacts)
                 } catch {
-                    continuation.resume(returning: [])
+                    continuation.resume(throwing: error)
                 }
             }
         }

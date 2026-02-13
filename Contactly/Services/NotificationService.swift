@@ -75,7 +75,7 @@ final class NotificationService {
         calendarService.refreshAuthorizationStatus()
         guard calendarService.accessGranted else { return }
 
-        let todaysEvents = calendarService.fetchTodayEvents()
+        let todaysEvents = (try? await calendarService.fetchTodayEvents()) ?? []
         guard !todaysEvents.isEmpty else {
             await removeTodayMorningBriefingIfNeeded()
             return

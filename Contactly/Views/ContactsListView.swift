@@ -144,23 +144,20 @@ struct ContactsListView: View {
         .sheet(isPresented: $showingAddContact) {
             EditContactView(viewModel: viewModel)
         }
-        .sheet(isPresented: $showingContactPicker) {
+        .fullScreenCover(isPresented: $showingContactPicker) {
             ContactPickerSheet(
                 onSelect: { contacts in
                     Task {
                         await importSelectedContacts(contacts)
                     }
                 },
-                onCancel: {}
+                onCancel: {
+                    showingContactPicker = false
+                }
             )
+            .ignoresSafeArea()
         }
         .confirmationDialog("Import Contacts", isPresented: $showingImportDialog) {
-            Button("Import All Contacts") {
-                Task {
-                    await importAllContacts()
-                }
-            }
-
             Button("Select Contacts") {
                 Task {
                     await prepareContactPicker()
@@ -216,27 +213,6 @@ struct ContactsListView: View {
         }
     }
 
-    private func importAllContacts() async {
-        guard await importService.requestAccess() else {
-            await MainActor.run {
-                showPermissionDeniedAlert = true
-            }
-            return
-        }
-
-        await MainActor.run {
-            isImporting = true
-        }
-
-        let fetchedContacts = await importService.fetchAllContacts()
-
-        await MainActor.run {
-            let importedCount = saveUniqueContacts(fetchedContacts)
-            isImporting = false
-            showImportToast(count: importedCount)
-        }
-    }
-
     private func importSelectedContacts(_ contacts: [CNContact]) async {
         await MainActor.run {
             showingContactPicker = false
@@ -253,32 +229,44 @@ struct ContactsListView: View {
     }
 
     private func saveUniqueContacts(_ contacts: [Contact]) -> Int {
-        let existingKeys = Set(
-            viewModel.repository.contacts.map { contact in
-                duplicateKey(name: contact.fullName, email: contact.email)
-            }
+        var existingEmails = Set(
+            viewModel.repository.contacts.compactMap { normalizedEmail($0.email) }
         )
-
-        var newKeys = existingKeys
+        var existingPhones = Set(
+            viewModel.repository.contacts.compactMap { normalizedPhone($0.phone) }
+        )
         var imported = 0
 
         for contact in contacts {
-            let key = duplicateKey(name: contact.fullName, email: contact.email)
-            if newKeys.contains(key) {
+            let email = normalizedEmail(contact.email)
+            let phone = normalizedPhone(contact.phone)
+            let isDuplicateByEmail = email.map { existingEmails.contains($0) } ?? false
+            let isDuplicateByPhone = phone.map { existingPhones.contains($0) } ?? false
+
+            if isDuplicateByEmail || isDuplicateByPhone {
                 continue
             }
             viewModel.addContact(contact)
-            newKeys.insert(key)
+            if let email {
+                existingEmails.insert(email)
+            }
+            if let phone {
+                existingPhones.insert(phone)
+            }
             imported += 1
         }
 
         return imported
     }
 
-    private func duplicateKey(name: String, email: String) -> String {
-        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return "\(normalizedName)|\(normalizedEmail)"
+    private func normalizedEmail(_ email: String) -> String? {
+        let value = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return value.isEmpty ? nil : value
+    }
+
+    private func normalizedPhone(_ phone: String) -> String? {
+        let value = phone.filter { $0.isWholeNumber }
+        return value.isEmpty ? nil : value
     }
 
     private func showImportToast(count: Int) {
@@ -322,7 +310,7 @@ private struct ContactRowView: View {
     var body: some View {
         CardContainer {
             HStack(spacing: AppTheme.spacingMedium) {
-                AvatarView(contact: contact, size: 52)
+                avatar
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(contact.fullName.isEmpty ? "No Name" : contact.fullName)
@@ -342,11 +330,45 @@ private struct ContactRowView: View {
                     .foregroundStyle(.tertiary.opacity(0.5))
             }
         }
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(contact.relationshipType.color.opacity(0.8))
+                .frame(width: 4)
+                .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                .padding(.vertical, 6)
+                .padding(.leading, 2)
+        }
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(Color.primary.opacity(0.06))
                 .frame(height: 1)
                 .padding(.horizontal, 6)
+        }
+    }
+
+    @ViewBuilder
+    private var avatar: some View {
+        if let avatarPath = contact.avatarPath,
+           let uiImage = UIImage(contentsOfFile: avatarPath)
+        {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 52, height: 52)
+                .clipShape(Circle())
+                .overlay {
+                    Circle()
+                        .strokeBorder(contact.relationshipType.color.opacity(0.45), lineWidth: 1)
+                }
+        } else {
+            Text(contact.initials.isEmpty ? "?" : contact.initials)
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(contact.relationshipType.color)
+                .frame(width: 52, height: 52)
+                .background(
+                    Circle()
+                        .fill(contact.relationshipType.color.opacity(0.2))
+                )
         }
     }
 }

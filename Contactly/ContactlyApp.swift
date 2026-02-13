@@ -43,7 +43,6 @@ struct ContactlyApp: App {
     @State private var settingsRepository: SettingsRepository
     @State private var contactsViewModel: ContactsViewModel
     @State private var interactionRepository: InteractionRepository
-    @State private var onboardingViewModel: OnboardingViewModel
     @State private var showMorningBriefing = false
 
     init() {
@@ -55,7 +54,6 @@ struct ContactlyApp: App {
         let userProfileStore = UserProfileStore()
         let calendarService = CalendarService()
         let googleCalendarService = GoogleCalendarService()
-        let contactImportService = ContactImportService()
         let calendarAggregatorService = CalendarAggregatorService(
             appleService: calendarService,
             googleService: googleCalendarService,
@@ -69,15 +67,6 @@ struct ContactlyApp: App {
             contactRepository: contactRepository,
             manualMeetingRepository: manualMeetingRepository
         )
-        let onboardingViewModel = OnboardingViewModel(
-            userProfileStore: userProfileStore,
-            settingsRepository: settingsRepository,
-            calendarService: calendarService,
-            googleCalendarService: googleCalendarService,
-            contactImportService: contactImportService,
-            contactRepository: contactRepository
-        )
-
         _calendarService = State(initialValue: calendarService)
         _googleCalendarService = State(initialValue: googleCalendarService)
         _userProfileStore = State(initialValue: userProfileStore)
@@ -87,7 +76,6 @@ struct ContactlyApp: App {
         _settingsRepository = State(initialValue: settingsRepository)
         _contactsViewModel = State(initialValue: contactsViewModel)
         _interactionRepository = State(initialValue: interactionRepository)
-        _onboardingViewModel = State(initialValue: onboardingViewModel)
     }
 
     var body: some Scene {
@@ -106,7 +94,10 @@ struct ContactlyApp: App {
                         interactionRepository: interactionRepository
                     )
                 } else {
-                    OnboardingContainerView(viewModel: onboardingViewModel) {}
+                    OnboardingView(
+                        contactRepository: contactsViewModel.repository,
+                        userProfileStore: userProfileStore
+                    )
                 }
             }
             .onOpenURL { url in

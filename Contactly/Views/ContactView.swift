@@ -5,17 +5,11 @@ struct ContactView: View {
     var viewModel: ContactsViewModel
     @Bindable var interactionRepository: InteractionRepository
     @State private var showingEdit = false
-    @Environment(\.dismiss) private var dismiss
+    @State private var showingAddInteractionSheet = false
 
     private var currentContact: Contact {
         viewModel.repository.contacts.first { $0.id == contact.id } ?? contact
     }
-
-    private static let timelineDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM yyyy"
-        return formatter
-    }()
 
     private var timelineInteractions: [Interaction] {
         interactionRepository.getInteractions(for: currentContact.id)
@@ -25,47 +19,63 @@ struct ContactView: View {
         interactionRepository.getRelationshipStatus(for: currentContact.id)
     }
 
+    private var relationshipType: RelationshipType {
+        currentContact.relationshipType
+    }
+
     private var relationshipColor: Color {
-        switch relationshipStatus.status {
-        case "Strong":
-            return .green
-        case "Medium":
-            return .orange
-        case "Weak":
-            return .red
-        default:
-            return .secondary
+        relationshipType.color
+    }
+
+    private var emptyTimelineMessage: String {
+        switch relationshipType {
+        case .pro:
+            return "Log your first interaction to start building this relationship."
+        case .perso:
+            return "Add a memory or interaction to keep in touch."
         }
-    }
-
-    private func formattedTimelineDate(_ date: Date) -> String {
-        Self.timelineDateFormatter.string(from: date)
-    }
-
-    private func notesPreview(_ notes: String) -> String {
-        let trimmed = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count > 120 else { return trimmed }
-        return "\(trimmed.prefix(120))..."
     }
 
     var body: some View {
         List {
             // MARK: Header
             Section {
-                VStack(spacing: 12) {
+                VStack(spacing: 14) {
                     AvatarView(contact: currentContact, size: 80)
 
                     Text(currentContact.fullName.isEmpty ? "No Name" : currentContact.fullName)
                         .font(.title2)
                         .fontWeight(.bold)
 
+                    Text(relationshipType.displayName.uppercased())
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(relationshipType.color)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(relationshipType.color.opacity(0.14))
+                        )
+
                     if !currentContact.company.isEmpty {
                         Text(currentContact.company)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
+
+                    Button(action: {
+                        showingAddInteractionSheet = true
+                    }) {
+                        Label("Add Interaction", systemImage: "plus")
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
                 .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
+                        .fill(relationshipType.color.opacity(0.05))
+                )
                 .listRowBackground(Color.clear)
                 .padding(.vertical, 8)
             }
@@ -74,9 +84,14 @@ struct ContactView: View {
                 if let daysSince = relationshipStatus.daysSince {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 7))
-                                .foregroundStyle(relationshipColor)
+                            ZStack {
+                                Circle()
+                                    .strokeBorder(relationshipType.color.opacity(0.45), lineWidth: 1)
+                                    .frame(width: 10, height: 10)
+                                Circle()
+                                    .fill(relationshipColor)
+                                    .frame(width: 6, height: 6)
+                            }
 
                             Text(relationshipStatus.status)
                                 .font(.callout.weight(.semibold))
@@ -89,69 +104,70 @@ struct ContactView: View {
                     }
                     .padding(.vertical, 2)
                 } else {
-                    Text("Log your first meeting to start building your relationship history.")
+                    Text("Log your first interaction to start building your relationship history.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             } header: {
                 Text("Relationship")
                     .font(.footnote.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(relationshipType.color.opacity(0.85))
                     .textCase(nil)
             }
 
             Section {
                 if timelineInteractions.isEmpty {
-                    Text("Log your first meeting to start building this relationship.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    VStack(spacing: 10) {
+                        Image(systemName: "text.bubble")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+
+                        Text("No interactions yet")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+
+                        Text(emptyTimelineMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+
+                        Button("Add first interaction") {
+                            showingAddInteractionSheet = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 } else {
                     ForEach(timelineInteractions) { interaction in
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text(formattedTimelineDate(interaction.startDate))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-
-                                Spacer()
-                            }
-
-                            Text(interaction.title)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-
-                            Text(notesPreview(interaction.notes))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(3)
-
-                            if let followUpDate = interaction.followUpDate {
-                                Text("Follow-up: \(formattedTimelineDate(followUpDate))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(
-                                        Capsule()
-                                            .fill(Color(.tertiarySystemFill))
-                                    )
+                        NavigationLink {
+                            EditInteractionContainer(
+                                contact: currentContact,
+                                interaction: interaction,
+                                interactionRepository: interactionRepository
+                            )
+                        } label: {
+                            interactionCard(interaction)
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    interactionRepository.delete(interaction)
+                                }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
-                        .padding(12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                                .fill(AppTheme.cardBackground)
-                        )
                         .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                         .listRowSeparator(.hidden)
-                        .fadeInOnAppear()
+                        .listRowBackground(Color.clear)
                     }
                 }
             } header: {
                 Text("Timeline")
                     .font(.footnote.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(relationshipType.color.opacity(0.85))
                     .textCase(nil)
             }
 
@@ -196,7 +212,7 @@ struct ContactView: View {
                 } header: {
                     Text("Notes")
                         .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(relationshipType.color.opacity(0.85))
                         .textCase(nil)
                 }
             }
@@ -230,5 +246,72 @@ struct ContactView: View {
         .sheet(isPresented: $showingEdit) {
             EditContactView(viewModel: viewModel, contact: currentContact)
         }
+        .sheet(isPresented: $showingAddInteractionSheet) {
+            AddInteractionView(
+                contact: currentContact,
+                interactionRepository: interactionRepository
+            )
+        }
+    }
+
+    private func interactionCard(_ interaction: Interaction) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(interaction.startDate.formatted(date: .abbreviated, time: .omitted))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text(interaction.notes)
+                .font(.body)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let followUp = interaction.followUpDate {
+                Text("Follow up: \(followUp.formatted(date: .abbreviated, time: .omitted))")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.orange.opacity(0.14))
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .fadeInOnAppear()
+    }
+}
+
+private struct EditInteractionContainer: View {
+    let contact: Contact
+    var interaction: Interaction
+    @Bindable var interactionRepository: InteractionRepository
+    @State private var editableInteraction: Interaction
+
+    init(contact: Contact, interaction: Interaction, interactionRepository: InteractionRepository) {
+        self.contact = contact
+        self.interaction = interaction
+        self.interactionRepository = interactionRepository
+        _editableInteraction = State(initialValue: interaction)
+    }
+
+    var body: some View {
+        EditInteractionView(
+            contact: contact,
+            interaction: $editableInteraction,
+            onSave: { updatedInteraction in
+                interactionRepository.update(updatedInteraction)
+            },
+            onDelete: { interactionToDelete in
+                interactionRepository.delete(interactionToDelete)
+            }
+        )
     }
 }

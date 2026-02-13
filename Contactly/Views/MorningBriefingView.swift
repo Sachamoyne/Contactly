@@ -22,7 +22,7 @@ struct MorningBriefingView: View {
                     Text("Good Morning")
                         .font(.largeTitle.weight(.bold))
 
-                    Text("You have \(items.count) meetings today")
+                    Text("You have \(items.count) interactions today")
                         .font(.title3)
                         .foregroundStyle(.secondary)
 
@@ -30,7 +30,7 @@ struct MorningBriefingView: View {
                         ProgressView("Loading briefing...")
                             .padding(.top, AppTheme.spacingSmall)
                     } else if items.isEmpty {
-                        Text("No matched contacts found for today's meetings.")
+                        Text("No matched contacts found for today's interactions.")
                             .foregroundStyle(.secondary)
                             .padding(.top, AppTheme.spacingSmall)
                     } else {
@@ -154,4 +154,3 @@ struct MorningBriefingView: View {
         return "\(trimmed[..<index])..."
     }
 }
-

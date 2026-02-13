@@ -59,31 +59,16 @@ final class CalendarService {
         }
     }
 
-    func fetchTodayEvents() -> [CalendarEvent] {
+    func fetchTodayEvents() async throws -> [CalendarEvent] {
+        refreshAuthorizationStatus()
+
         guard accessGranted else {
             events = []
             lastEventsFingerprint = ""
             return []
         }
 
-        let now = Date()
-        guard let endDate = Calendar.current.date(byAdding: .hour, value: 24, to: now) else {
-            events = []
-            return []
-        }
-
-        let predicate = store.predicateForEvents(withStart: now, end: endDate, calendars: nil)
-        let ekEvents = store.events(matching: predicate)
-
-        let mapped = ekEvents.map { ek in
-            CalendarEvent(
-                title: ek.title ?? "",
-                startDate: ek.startDate,
-                endDate: ek.endDate,
-                location: ek.location ?? ""
-            )
-        }
-
+        let mapped = todayEventsSnapshot()
         events = mapped
         return mapped
     }
@@ -171,8 +156,9 @@ final class CalendarService {
         }
 
         let previousFingerprint = lastEventsFingerprint
-        let refreshedEvents = fetchTodayEvents()
+        let refreshedEvents = todayEventsSnapshot()
         let currentFingerprint = fingerprint(for: refreshedEvents)
+        events = refreshedEvents
         lastEventsFingerprint = currentFingerprint
         if currentFingerprint != previousFingerprint {
             notifyEventsDidChange()
@@ -190,6 +176,25 @@ final class CalendarService {
         events
             .map { "\($0.title)|\($0.startDate.timeIntervalSince1970)|\($0.endDate.timeIntervalSince1970)|\($0.location)" }
             .joined(separator: "#")
+    }
+
+    private func todayEventsSnapshot() -> [CalendarEvent] {
+        let now = Date()
+        guard let endDate = Calendar.current.date(byAdding: .hour, value: 24, to: now) else {
+            return []
+        }
+
+        let predicate = store.predicateForEvents(withStart: now, end: endDate, calendars: nil)
+        let ekEvents = store.events(matching: predicate)
+
+        return ekEvents.map { ek in
+            CalendarEvent(
+                title: ek.title ?? "",
+                startDate: ek.startDate,
+                endDate: ek.endDate,
+                location: ek.location ?? ""
+            )
+        }
     }
 }
 

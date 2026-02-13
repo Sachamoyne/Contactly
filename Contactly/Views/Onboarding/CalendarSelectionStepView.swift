@@ -10,7 +10,7 @@ struct CalendarSelectionStepView: View {
                 Text("Choose your calendar provider")
                     .font(.system(size: 30, weight: .bold))
 
-                Text("Contactly uses your calendar to detect upcoming meetings and show you context.")
+                Text("Contactly uses your calendar to detect upcoming interactions and show you context.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -21,7 +21,7 @@ struct CalendarSelectionStepView: View {
                 calendarOptionRow(.none)
             }
 
-            Text("We only use your calendar to detect meetings. We never store your calendar data.")
+            Text("We only use your calendar to detect interactions. We never store your calendar data.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 

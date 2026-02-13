@@ -21,5 +21,7 @@
 	<string>Contactly uses your calendar to sync upcoming events and reminders.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Contactly imports contacts to help you manage your relationships.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Contactly needs access to your photo library to let you select a contact photo.</string>
 </dict>
 </plist>

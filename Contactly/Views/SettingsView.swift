@@ -125,12 +125,6 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         }
         .confirmationDialog("Import Contacts", isPresented: $showingContactImportDialog) {
-            Button("Import All Contacts") {
-                Task {
-                    await importAllContacts()
-                }
-            }
-
             Button("Choose Contacts") {
                 Task {
                     await prepareContactPicker()
@@ -312,20 +306,6 @@ struct SettingsView: View {
         showingContactPicker = true
     }
 
-    private func importAllContacts() async {
-        guard await importService.requestAccess() else {
-            showingPermissionDeniedAlert = true
-            return
-        }
-
-        isWorking = true
-        let fetchedContacts = await importService.fetchAllContacts()
-        let count = saveUniqueContacts(fetchedContacts)
-        updateProfileContactSyncOption(.all)
-        isWorking = false
-        showToastMessage("\(count) contacts imported")
-    }
-
     private func importSelectedContacts(_ contacts: [CNContact]) async {
         showingContactPicker = false
         isWorking = true
@@ -339,32 +319,44 @@ struct SettingsView: View {
     }
 
     private func saveUniqueContacts(_ contacts: [Contact]) -> Int {
-        let existingKeys = Set(
-            contactsViewModel.repository.contacts.map { contact in
-                duplicateKey(name: contact.fullName, email: contact.email)
-            }
+        var seenEmails = Set(
+            contactsViewModel.repository.contacts.compactMap { normalizedEmail($0.email) }
         )
-
-        var seen = existingKeys
+        var seenPhones = Set(
+            contactsViewModel.repository.contacts.compactMap { normalizedPhone($0.phone) }
+        )
         var importedCount = 0
 
         for contact in contacts {
-            let key = duplicateKey(name: contact.fullName, email: contact.email)
-            if seen.contains(key) {
+            let email = normalizedEmail(contact.email)
+            let phone = normalizedPhone(contact.phone)
+            let isDuplicateByEmail = email.map { seenEmails.contains($0) } ?? false
+            let isDuplicateByPhone = phone.map { seenPhones.contains($0) } ?? false
+
+            if isDuplicateByEmail || isDuplicateByPhone {
                 continue
             }
             contactsViewModel.addContact(contact)
-            seen.insert(key)
+            if let email {
+                seenEmails.insert(email)
+            }
+            if let phone {
+                seenPhones.insert(phone)
+            }
             importedCount += 1
         }
 
         return importedCount
     }
 
-    private func duplicateKey(name: String, email: String) -> String {
-        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return "\(normalizedName)|\(normalizedEmail)"
+    private func normalizedEmail(_ email: String) -> String? {
+        let value = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return value.isEmpty ? nil : value
+    }
+
+    private func normalizedPhone(_ phone: String) -> String? {
+        let value = phone.filter { $0.isWholeNumber }
+        return value.isEmpty ? nil : value
     }
 
     private func updateProfileCalendarProvider(_ provider: CalendarProvider) {

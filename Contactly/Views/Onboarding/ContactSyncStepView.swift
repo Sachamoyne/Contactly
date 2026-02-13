@@ -15,7 +15,7 @@ struct ContactSyncStepView: View {
                 Text("See context instantly")
                     .font(.system(size: 30, weight: .bold))
 
-                Text("We match meetings with your contacts to show notes, last discussions, and follow-ups.")
+                Text("We match interactions with your contacts to show notes, last discussions, and follow-ups.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

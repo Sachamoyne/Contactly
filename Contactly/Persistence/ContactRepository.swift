@@ -71,6 +71,35 @@ final class ContactRepository {
         }
     }
 
+    // Compatibility helpers for interaction CRUD without changing persistence structure.
+    func updateInteraction(contactID: UUID, interaction: Interaction) {
+        guard interaction.contactId == contactID else { return }
+        let repository = InteractionRepository()
+        repository.load()
+        repository.update(interaction)
+        refreshLastInteractionDate(for: contactID, using: repository)
+    }
+
+    func deleteInteraction(contactID: UUID, interactionID: UUID) {
+        let repository = InteractionRepository()
+        repository.load()
+        guard let interaction = repository.interactions.first(where: { $0.id == interactionID && $0.contactId == contactID }) else {
+            return
+        }
+        repository.delete(interaction)
+        refreshLastInteractionDate(for: contactID, using: repository)
+    }
+
+    private func refreshLastInteractionDate(for contactID: UUID, using repository: InteractionRepository) {
+        guard let index = contacts.firstIndex(where: { $0.id == contactID }) else { return }
+        let latestDate = repository
+            .getInteractions(for: contactID)
+            .map(\.startDate)
+            .max()
+        contacts[index].lastInteractionDate = latestDate
+        save()
+    }
+
     static var preview: ContactRepository {
         let repo = ContactRepository()
         repo.contacts = Contact.previewList
