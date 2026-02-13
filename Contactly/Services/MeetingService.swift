@@ -4,7 +4,6 @@ import Foundation
 final class MeetingService {
     private let calendarService: CalendarService
     private let googleCalendarService: GoogleCalendarService
-    private let outlookCalendarService: OutlookCalendarService
     private let userProfileStore: UserProfileStore
     private let settingsRepository: SettingsRepository
     private let contactRepository: ContactRepository
@@ -14,7 +13,6 @@ final class MeetingService {
     init(
         calendarService: CalendarService,
         googleCalendarService: GoogleCalendarService,
-        outlookCalendarService: OutlookCalendarService,
         userProfileStore: UserProfileStore,
         settingsRepository: SettingsRepository,
         contactRepository: ContactRepository,
@@ -22,11 +20,16 @@ final class MeetingService {
     ) {
         self.calendarService = calendarService
         self.googleCalendarService = googleCalendarService
-        self.outlookCalendarService = outlookCalendarService
         self.userProfileStore = userProfileStore
         self.settingsRepository = settingsRepository
         self.contactRepository = contactRepository
         self.manualMeetingRepository = manualMeetingRepository
+    }
+
+    var isCalendarAccessDenied: Bool {
+        guard userProfileStore.profile.calendarProvider == .apple else { return false }
+        calendarService.refreshAuthorizationStatus()
+        return !calendarService.accessGranted
     }
 
     func syncMeetingEvents(for date: Date = Date()) async throws -> [MeetingEvent] {
@@ -44,9 +47,6 @@ final class MeetingService {
             case .google:
                 let googleEvents = try await googleCalendarService.fetchUpcomingSyncedEvents(from: date, daysAhead: 1)
                 allEvents.append(contentsOf: googleEvents)
-            case .outlook:
-                let outlookEvents = try await outlookCalendarService.fetchUpcomingSyncedEvents(from: date, daysAhead: 1)
-                allEvents.append(contentsOf: outlookEvents)
             }
         }
 
@@ -91,8 +91,6 @@ final class MeetingService {
             if !googleCalendarService.accountEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 return googleCalendarService.accountEmail
             }
-        case .outlook:
-            break
         case .apple, .none:
             break
         }

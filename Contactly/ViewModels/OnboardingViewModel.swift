@@ -6,6 +6,7 @@ import Observation
 @Observable
 final class OnboardingViewModel {
     enum Step: Int, CaseIterable {
+        case intro
         case userInfo
         case calendarSelection
         case contactSync
@@ -13,6 +14,8 @@ final class OnboardingViewModel {
 
         var title: String {
             switch self {
+            case .intro:
+                return "Welcome"
             case .userInfo:
                 return "Your Details"
             case .calendarSelection:
@@ -26,6 +29,8 @@ final class OnboardingViewModel {
 
         var progressText: String {
             switch self {
+            case .intro:
+                return "Welcome"
             case .userInfo:
                 return "Step 1 of 3"
             case .calendarSelection:
@@ -42,11 +47,10 @@ final class OnboardingViewModel {
     let settingsRepository: SettingsRepository
     let calendarService: CalendarService
     let googleCalendarService: GoogleCalendarService
-    let microsoftAuthService: MicrosoftAuthService
     let contactImportService: ContactImportService
     let contactRepository: ContactRepository
 
-    var currentStep: Step = .userInfo
+    var currentStep: Step = .intro
     var firstName: String
     var lastName: String
     var email: String
@@ -60,7 +64,6 @@ final class OnboardingViewModel {
         settingsRepository: SettingsRepository,
         calendarService: CalendarService,
         googleCalendarService: GoogleCalendarService,
-        microsoftAuthService: MicrosoftAuthService,
         contactImportService: ContactImportService,
         contactRepository: ContactRepository
     ) {
@@ -68,7 +71,6 @@ final class OnboardingViewModel {
         self.settingsRepository = settingsRepository
         self.calendarService = calendarService
         self.googleCalendarService = googleCalendarService
-        self.microsoftAuthService = microsoftAuthService
         self.contactImportService = contactImportService
         self.contactRepository = contactRepository
 
@@ -83,6 +85,10 @@ final class OnboardingViewModel {
         !firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !lastName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && isValidEmail(email)
+    }
+
+    func continueFromIntro() {
+        currentStep = .userInfo
     }
 
     func continueFromUserInfo() {
@@ -109,8 +115,6 @@ final class OnboardingViewModel {
             case .google:
                 try await googleCalendarService.signIn()
                 _ = try await googleCalendarService.fetchUpcomingEvents(daysAhead: 1)
-            case .outlook:
-                try await microsoftAuthService.signIn()
             case .none:
                 break
             }

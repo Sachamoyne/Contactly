@@ -6,7 +6,6 @@ import Observation
 final class CalendarAggregatorService {
     private let appleService: CalendarService
     private let googleService: GoogleCalendarService
-    private let outlookService: OutlookCalendarService
     private let userProfileStore: UserProfileStore
 
     private(set) var events: [CalendarEvent] = []
@@ -15,12 +14,10 @@ final class CalendarAggregatorService {
     init(
         appleService: CalendarService,
         googleService: GoogleCalendarService,
-        outlookService: OutlookCalendarService,
         userProfileStore: UserProfileStore
     ) {
         self.appleService = appleService
         self.googleService = googleService
-        self.outlookService = outlookService
         self.userProfileStore = userProfileStore
     }
 
@@ -55,21 +52,6 @@ final class CalendarAggregatorService {
                     lastErrorMessage = description
                 } else {
                     lastErrorMessage = "Unable to fetch Google Calendar events."
-                }
-                return []
-            }
-
-        case .outlook:
-            do {
-                let outlookEvents = try await outlookService.fetchUpcomingEvents(daysAhead: 1)
-                events = deduplicatedAndSorted(outlookEvents)
-                return events
-            } catch {
-                events = []
-                if let description = (error as? LocalizedError)?.errorDescription {
-                    lastErrorMessage = description
-                } else {
-                    lastErrorMessage = "Unable to fetch Outlook Calendar events."
                 }
                 return []
             }

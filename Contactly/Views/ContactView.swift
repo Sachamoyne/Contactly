@@ -70,34 +70,39 @@ struct ContactView: View {
                 .padding(.vertical, 8)
             }
 
-            Section("Relationship") {
+            Section {
                 if let daysSince = relationshipStatus.daysSince {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(relationshipColor)
-                                .frame(width: 10, height: 10)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 7))
+                                .foregroundStyle(relationshipColor)
 
                             Text(relationshipStatus.status)
-                                .font(.subheadline.weight(.semibold))
+                                .font(.callout.weight(.semibold))
                                 .foregroundStyle(.primary)
                         }
 
                         Text("Last contact: \(daysSince) day\(daysSince == 1 ? "" : "s") ago")
-                            .font(.subheadline)
+                            .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 2)
                 } else {
-                    Text("No interactions recorded")
+                    Text("Log your first meeting to start building your relationship history.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
+            } header: {
+                Text("Relationship")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .textCase(nil)
             }
 
-            Section("Timeline") {
+            Section {
                 if timelineInteractions.isEmpty {
-                    Text("No meetings recorded yet.")
+                    Text("Log your first meeting to start building this relationship.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 } else {
@@ -135,13 +140,19 @@ struct ContactView: View {
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color(.secondarySystemGroupedBackground))
+                            RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
+                                .fill(AppTheme.cardBackground)
                         )
                         .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                         .listRowSeparator(.hidden)
+                        .fadeInOnAppear()
                     }
                 }
+            } header: {
+                Text("Timeline")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .textCase(nil)
             }
 
             // MARK: Contact Info
@@ -179,9 +190,14 @@ struct ContactView: View {
 
             // MARK: Notes
             if !currentContact.notes.isEmpty {
-                Section("Notes") {
+                Section {
                     Text(currentContact.notes)
                         .font(.body)
+                } header: {
+                    Text("Notes")
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .textCase(nil)
                 }
             }
 
@@ -200,6 +216,7 @@ struct ContactView: View {
                 }
             }
         }
+        .listSectionSpacing(AppTheme.spacingLarge)
         .navigationTitle("Contact")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

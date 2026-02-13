@@ -3,7 +3,6 @@ import SwiftUI
 struct ContentView: View {
     var calendarService: CalendarService
     var googleCalendarService: GoogleCalendarService
-    var microsoftAuthService: MicrosoftAuthService
     var userProfileStore: UserProfileStore
     var calendarAggregatorService: CalendarAggregatorService
     var meetingService: MeetingService
@@ -43,7 +42,7 @@ struct ContentView: View {
                     contactsViewModel: contactsViewModel,
                     userProfileStore: userProfileStore,
                     googleCalendarService: googleCalendarService,
-                    microsoftAuthService: microsoftAuthService,
+                    notificationService: notificationService,
                     appleCalendarService: calendarService,
                     calendarAggregatorService: calendarAggregatorService
                 )

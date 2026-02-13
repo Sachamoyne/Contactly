@@ -4,19 +4,18 @@ struct OnboardingCalendarSelectionView: View {
     var providerManager: CalendarProviderManager
     var appleService: CalendarService
     var googleService: GoogleCalendarService
-    var microsoftAuthService: MicrosoftAuthService
     var onComplete: () -> Void
 
     @State private var useApple = false
     @State private var useGoogle = false
-    @State private var useOutlook = false
+    @State private var useNoSync = false
     @State private var isSubmitting = false
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("Choose your calendar source")
+            Text("Choose your calendar provider")
                 .font(.title2.weight(.bold))
 
             VStack(spacing: 12) {
@@ -24,7 +23,7 @@ struct OnboardingCalendarSelectionView: View {
                     .toggleStyle(.switch)
                 Toggle("Google Calendar", isOn: $useGoogle)
                     .toggleStyle(.switch)
-                Toggle("Outlook Calendar", isOn: $useOutlook)
+                Toggle("No Calendar Sync", isOn: $useNoSync)
                     .toggleStyle(.switch)
             }
 
@@ -55,22 +54,25 @@ struct OnboardingCalendarSelectionView: View {
     }
 
     private var canContinue: Bool {
-        useApple || useGoogle || useOutlook
+        useApple || useGoogle || useNoSync
     }
 
     private func continueTapped() async {
         isSubmitting = true
         defer { isSubmitting = false }
 
-        var providers = Set<CalendarProvider>()
-        if useApple {
-            providers.insert(.apple)
-        }
-        if useGoogle {
-            providers.insert(.google)
-        }
-        if useOutlook {
-            providers.insert(.outlook)
+        let providers: Set<CalendarProvider>
+        if useNoSync {
+            providers = []
+        } else {
+            var selected = Set<CalendarProvider>()
+            if useApple {
+                selected.insert(.apple)
+            }
+            if useGoogle {
+                selected.insert(.google)
+            }
+            providers = selected
         }
 
         providerManager.updateSelection(providers)
@@ -89,17 +91,6 @@ struct OnboardingCalendarSelectionView: View {
             } catch {
                 providerManager.setProviderEnabled(.google, enabled: false)
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? "Google sign-in failed."
-                showErrorAlert = true
-                return
-            }
-        }
-
-        if providers.contains(.outlook) {
-            do {
-                try await microsoftAuthService.signIn()
-            } catch {
-                providerManager.setProviderEnabled(.outlook, enabled: false)
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Outlook sign-in failed."
                 showErrorAlert = true
                 return
             }

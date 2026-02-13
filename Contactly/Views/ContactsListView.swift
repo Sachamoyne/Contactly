@@ -14,65 +14,124 @@ struct ContactsListView: View {
     @State private var showPermissionDeniedAlert = false
     @State private var showToast = false
     @State private var toastMessage = ""
+    @FocusState private var isSearchFocused: Bool
+    private var hasAnyContacts: Bool { !viewModel.repository.contacts.isEmpty }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            Group {
-                if viewModel.filteredContacts.isEmpty {
-                    ContentUnavailableView(
-                        viewModel.searchText.isEmpty ? "No Contacts" : "No Results",
-                        systemImage: viewModel.searchText.isEmpty
-                            ? "person.crop.circle"
-                            : "magnifyingglass",
-                        description: Text(
-                            viewModel.searchText.isEmpty
-                                ? "Tap + to add your first contact."
-                                : "No contacts match your search."
-                        )
+            if !hasAnyContacts {
+                VStack(spacing: AppTheme.spacingMedium) {
+                    Spacer()
+                    Image(systemName: "person.crop.circle.badge.plus")
+                        .font(.system(size: 44, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    Text("No contacts yet")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text("Import your contacts or add one manually.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("Add Contact") {
+                        showingAddContact = true
+                    }
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: 260)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(AppTheme.accent)
                     )
-                } else {
-                    List {
-                        ForEach(viewModel.filteredContacts) { contact in
-                            NavigationLink(value: contact) {
-                                ContactRowView(contact: contact)
+                    .buttonStyle(PressScaleButtonStyle())
+                    Spacer()
+                }
+                .padding(.horizontal, AppTheme.spacingLarge)
+            } else {
+                VStack(spacing: AppTheme.spacingMedium) {
+                    HStack(spacing: AppTheme.spacingSmall) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        TextField("Search contacts", text: $viewModel.searchText)
+                            .focused($isSearchFocused)
+                            .textInputAutocapitalization(.words)
+
+                        if !viewModel.searchText.isEmpty {
+                            Button {
+                                viewModel.searchText = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
                             }
-                            .buttonStyle(.plain)
-                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                        }
-                        .onDelete { offsets in
-                            viewModel.deleteContacts(at: offsets)
+                            .buttonStyle(PressScaleButtonStyle())
                         }
                     }
-                    .scrollContentBackground(.hidden)
-                    .listStyle(.plain)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: AppTheme.inputCornerRadius, style: .continuous)
+                            .fill(Color(uiColor: .secondarySystemBackground))
+                    )
+
+                    Group {
+                        if viewModel.filteredContacts.isEmpty {
+                            ContentUnavailableView(
+                                "No Results",
+                                systemImage: "magnifyingglass",
+                                description: Text("No contacts match your search.")
+                            )
+                        } else {
+                            List {
+                                ForEach(viewModel.filteredContacts) { contact in
+                                    NavigationLink(value: contact) {
+                                        ContactRowView(contact: contact)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                }
+                                .onDelete { offsets in
+                                    viewModel.deleteContacts(at: offsets)
+                                }
+                            }
+                            .scrollContentBackground(.hidden)
+                            .listStyle(.plain)
+                        }
+                    }
                 }
+                .padding(.horizontal, AppTheme.spacingMedium)
+                .padding(.top, AppTheme.spacingMedium)
             }
 
-            Button {
-                showingAddContact = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 60, height: 60)
-                    .background(Circle().fill(AppTheme.accent))
-                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+            if hasAnyContacts {
+                Button {
+                    showingAddContact = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 60, height: 60)
+                        .background(Circle().fill(AppTheme.accent))
+                        .shadow(color: .black.opacity(0.22), radius: 12, x: 0, y: 6)
+                }
+                .buttonStyle(PressScaleButtonStyle())
+                .padding(.trailing, AppTheme.spacingMedium)
+                .padding(.bottom, AppTheme.spacingLarge)
+                .accessibilityLabel("Add Contact")
             }
-            .padding(.trailing, AppTheme.spacingMedium)
-            .padding(.bottom, AppTheme.spacingLarge)
-            .accessibilityLabel("Add Contact")
         }
         .background(Color(uiColor: .systemBackground))
         .navigationTitle("Contacts")
-        .searchable(text: $viewModel.searchText, prompt: "Search contacts")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Import") {
                     showingImportDialog = true
                 }
                 .foregroundStyle(AppTheme.accent)
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
         .navigationDestination(for: Contact.self) { contact in
@@ -261,30 +320,33 @@ private struct ContactRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: AppTheme.spacingMedium) {
-            AvatarView(contact: contact, size: 52)
+        CardContainer {
+            HStack(spacing: AppTheme.spacingMedium) {
+                AvatarView(contact: contact, size: 52)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(contact.fullName.isEmpty ? "No Name" : contact.fullName)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(contact.fullName.isEmpty ? "No Name" : contact.fullName)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
 
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.tertiary.opacity(0.5))
             }
-
-            Spacer(minLength: 0)
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.tertiary)
         }
-        .padding(AppTheme.spacingMedium)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
-        )
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.primary.opacity(0.06))
+                .frame(height: 1)
+                .padding(.horizontal, 6)
+        }
     }
 }

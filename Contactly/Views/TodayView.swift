@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 private struct PrepContext: Identifiable {
     let meeting: MeetingEvent
@@ -45,6 +46,9 @@ struct TodayView: View {
     @State private var promptedMeetingKeys: Set<String> = []
     @State private var createdContactForEditing: Contact?
     @State private var showingContactExistsAlert = false
+    @State private var showingContactsFromEmptyState = false
+    private let sectionSpacing: CGFloat = AppTheme.spacingLarge
+    private let cardCornerRadius: CGFloat = AppTheme.cornerRadius
 
     init(
         meetingService: MeetingService,
@@ -61,12 +65,17 @@ struct TodayView: View {
         _viewModel = StateObject(wrappedValue: TodayViewModel(meetingService: meetingService))
     }
 
-    private var nextMeeting: MeetingEvent? {
-        viewModel.meetingEvents.first
+    private var unifiedMeetings: [TodayViewModel.MeetingListItem] {
+        var seen = Set<String>()
+        return viewModel.sortedMeetings.filter { seen.insert($0.id).inserted }
     }
 
-    private var upcomingMeetings: [MeetingEvent] {
-        Array(viewModel.meetingEvents.dropFirst())
+    private var primaryMeeting: TodayViewModel.MeetingListItem? {
+        unifiedMeetings.first
+    }
+
+    private var remainingMeetings: [TodayViewModel.MeetingListItem] {
+        Array(unifiedMeetings.dropFirst())
     }
 
     private var pendingFollowUps: [PendingFollowUpItem] {
@@ -78,26 +87,16 @@ struct TodayView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: AppTheme.spacingLarge) {
+            VStack(alignment: .leading, spacing: sectionSpacing) {
                 followUpsSection
                 todaysMeetingsSection
-                manualMeetingsSection
             }
             .padding(.horizontal, AppTheme.spacingMedium)
             .padding(.vertical, AppTheme.spacingMedium)
         }
         .background(Color(uiColor: .systemBackground))
-        .overlay {
-            if viewModel.isLoading {
-                ZStack {
-                    Color.black.opacity(0.1).ignoresSafeArea()
-                    ProgressView("Syncing meetings...")
-                        .padding(AppTheme.spacingMedium)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
-                }
-            }
-        }
         .navigationTitle("Today")
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -109,12 +108,19 @@ struct TodayView: View {
                         .frame(width: 36, height: 36)
                         .background(Circle().fill(AppTheme.accent))
                 }
+                .buttonStyle(PressScaleButtonStyle())
                 .disabled(contactsViewModel.repository.contacts.isEmpty)
             }
         }
         .navigationDestination(for: Contact.self) { contact in
             ContactView(
                 contact: contact,
+                viewModel: contactsViewModel,
+                interactionRepository: interactionRepository
+            )
+        }
+        .navigationDestination(isPresented: $showingContactsFromEmptyState) {
+            ContactsListView(
                 viewModel: contactsViewModel,
                 interactionRepository: interactionRepository
             )
@@ -221,14 +227,27 @@ struct TodayView: View {
         }
     }
 
-    @ViewBuilder
     private var followUpsSection: some View {
-        if !pendingFollowUps.isEmpty {
-            VStack(alignment: .leading, spacing: AppTheme.spacingMedium) {
-                Text("Follow Ups")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.primary)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Follow Ups")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.primary)
 
+            if pendingFollowUps.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green.opacity(0.7))
+                    Text("You're all caught up.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(AppTheme.spacingMedium)
+                .background(
+                    RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                        .fill(AppTheme.cardBackground)
+                )
+            } else {
                 ForEach(pendingFollowUps) { item in
                     followUpRow(item)
                 }
@@ -237,68 +256,76 @@ struct TodayView: View {
     }
 
     private var todaysMeetingsSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingMedium) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("Today's Meetings")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.primary)
 
-            if let meeting = nextMeeting {
-                nextMeetingCard(meeting)
-            } else {
-                Text("No synced meetings with attendees today.")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(AppTheme.spacingMedium)
-                    .background(
-                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                            .fill(Color(uiColor: .secondarySystemBackground))
-                    )
+            if viewModel.isLoading {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Refreshing meetings...")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            if !upcomingMeetings.isEmpty {
+            if meetingService.isCalendarAccessDenied {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Calendar Access Disabled")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("Enable calendar access to see upcoming meetings.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Button("Enable Calendar") {
+                        openAppSettings()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.accent)
+                    .buttonStyle(PressScaleButtonStyle())
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(AppTheme.spacingMedium)
+                .background(
+                    RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                        .fill(AppTheme.cardBackground)
+                )
+            } else if let meeting = primaryMeeting {
+                unifiedPrimaryMeetingCard(meeting)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("No meetings today")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("A good day to reconnect.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Button("Review Relationships") {
+                        showingContactsFromEmptyState = true
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.accent)
+                    .buttonStyle(PressScaleButtonStyle())
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(AppTheme.spacingMedium)
+                .background(
+                    RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                        .fill(AppTheme.cardBackground)
+                )
+            }
+
+            if !remainingMeetings.isEmpty {
                 VStack(alignment: .leading, spacing: AppTheme.spacingSmall) {
                     Text("Upcoming")
                         .font(.headline)
                         .foregroundStyle(.primary)
 
-                    ForEach(upcomingMeetings) { meeting in
-                        syncedMeetingRow(meeting)
+                    ForEach(remainingMeetings) { meeting in
+                        unifiedMeetingRow(meeting)
                     }
-                }
-            }
-        }
-    }
-
-    private var manualMeetingsSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingMedium) {
-            Text("Manual Meetings")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.primary)
-
-            if viewModel.manualMeetings.isEmpty {
-                Text("No manual meetings created.")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(AppTheme.spacingMedium)
-                    .background(
-                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                            .fill(Color(uiColor: .secondarySystemBackground))
-                    )
-            } else {
-                ForEach(viewModel.manualMeetings) { manualMeeting in
-                    manualMeetingRow(manualMeeting)
-                        .swipeActions(edge: .trailing) {
-                            Button("Delete", role: .destructive) {
-                                Task {
-                                    await viewModel.deleteManualMeeting(manualMeeting)
-                                }
-                            }
-
-                            Button("Edit") {
-                                editingManualMeeting = manualMeeting
-                            }
-                            .tint(AppTheme.accent)
-                        }
                 }
             }
         }
@@ -307,7 +334,7 @@ struct TodayView: View {
     private func nextMeetingCard(_ meeting: MeetingEvent) -> some View {
         let matchedContact = contactForMeeting(meeting)
 
-        return VStack(alignment: .leading, spacing: AppTheme.spacingMedium) {
+        return VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: AppTheme.spacingMedium) {
                 if let matchedContact {
                     AvatarView(contact: matchedContact, size: 80)
@@ -322,18 +349,19 @@ struct TodayView: View {
                         }
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(matchedContact?.fullName.isEmpty == false ? (matchedContact?.fullName ?? "") : (meeting.attendeeEmails.first ?? "Unknown attendee"))
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(meeting.title)
                         .font(.title3.weight(.bold))
                         .foregroundStyle(.primary)
+                        .lineLimit(2)
 
-                    Text("\(meeting.startDate.formatted(date: .omitted, time: .shortened)) - \(meeting.endDate.formatted(date: .omitted, time: .shortened))")
-                        .font(.subheadline)
+                    Text(matchedContact?.fullName.isEmpty == false ? (matchedContact?.fullName ?? "") : (meeting.attendeeEmails.first ?? "Unknown attendee"))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
 
-                    Text(meeting.title)
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.primary)
+                    Text("\(meeting.startDate.formatted(date: .omitted, time: .shortened)) - \(meeting.endDate.formatted(date: .omitted, time: .shortened))")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
             }
@@ -362,7 +390,9 @@ struct TodayView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(Capsule().fill(AppTheme.chipBackground))
+                    .buttonStyle(PressScaleButtonStyle())
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Button("Create Contact") {
                     createContactFromMeeting(meeting)
@@ -372,21 +402,24 @@ struct TodayView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(Capsule().fill(AppTheme.chipBackground))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
         .padding(AppTheme.spacingLarge)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: AppTheme.heroCornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
                 .fill(AppTheme.tintBackground)
         )
-        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.10), radius: 14, x: 0, y: 6)
+        .fadeInOnAppear()
     }
 
     private func syncedMeetingRow(_ meeting: MeetingEvent) -> some View {
         let matchedContact = contactForMeeting(meeting)
 
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: AppTheme.spacingSmall) {
                 if let matchedContact {
                     AvatarView(contact: matchedContact, size: 44)
@@ -402,13 +435,15 @@ struct TodayView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(matchedContact?.fullName.isEmpty == false ? (matchedContact?.fullName ?? "") : (meeting.attendeeEmails.first ?? "Unknown attendee"))
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-
                     Text(meeting.title)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    Text(matchedContact?.fullName.isEmpty == false ? (matchedContact?.fullName ?? "") : (meeting.attendeeEmails.first ?? "Unknown attendee"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
 
                 Spacer()
@@ -425,33 +460,60 @@ struct TodayView: View {
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
+                .buttonStyle(PressScaleButtonStyle())
             } else {
                 Button("Create Contact") {
                     createContactFromMeeting(meeting)
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
         .padding(AppTheme.spacingMedium)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+            RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                .fill(AppTheme.cardBackground)
         )
+        .fadeInOnAppear()
     }
 
-    private func manualMeetingRow(_ meeting: ManualMeeting) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func unifiedPrimaryMeetingCard(_ item: TodayViewModel.MeetingListItem) -> some View {
+        switch item {
+        case let .synced(meeting):
+            return AnyView(nextMeetingCard(meeting))
+        case let .manual(meeting):
+            return AnyView(manualMeetingCard(meeting))
+        }
+    }
+
+    private func unifiedMeetingRow(_ item: TodayViewModel.MeetingListItem) -> some View {
+        switch item {
+        case let .synced(meeting):
+            return AnyView(syncedMeetingRow(meeting))
+        case let .manual(meeting):
+            return AnyView(manualMeetingRow(meeting))
+        }
+    }
+
+    private func manualMeetingCard(_ meeting: ManualMeeting) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text(viewModel.contact(for: meeting)?.fullName ?? "Unknown contact")
-                    .font(.headline)
+                    .font(.title3.weight(.bold))
                     .foregroundStyle(.primary)
                 Spacer()
-                Text(meeting.date, style: .time)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                manualBadge
             }
+
+            HStack(spacing: 4) {
+                Image(systemName: "calendar")
+                    .font(.caption)
+                Text(meeting.date, style: .time)
+                    .font(.caption)
+            }
+            .foregroundStyle(.secondary)
 
             Text(meeting.occasion)
                 .font(.subheadline.weight(.semibold))
@@ -461,14 +523,66 @@ struct TodayView: View {
                 Text(meeting.notes)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            }
+        }
+        .padding(AppTheme.spacingLarge)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                .fill(AppTheme.tintBackground)
+        )
+        .shadow(color: .black.opacity(0.10), radius: 14, x: 0, y: 6)
+        .fadeInOnAppear()
+    }
+
+    private func manualMeetingRow(_ meeting: ManualMeeting) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(viewModel.contact(for: meeting)?.fullName ?? "Unknown contact")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Spacer()
+                manualBadge
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar")
+                        .font(.caption)
+                    Text(meeting.date, style: .time)
+                        .font(.caption)
+                }
+                .foregroundStyle(.secondary)
+            }
+
+            Text(meeting.occasion)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            if !meeting.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                HStack(spacing: 4) {
+                    Text(meeting.notes)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
             }
         }
         .padding(AppTheme.spacingMedium)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(AppTheme.cardBackground)
         )
+        .fadeInOnAppear()
+    }
+
+    private var manualBadge: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "pencil")
+                .font(.caption2)
+            Text("Manual")
+                .font(.caption2)
+        }
+        .foregroundStyle(.secondary)
     }
 
     private func followUpRow(_ item: PendingFollowUpItem) -> some View {
@@ -477,9 +591,15 @@ struct TodayView: View {
                 AvatarView(contact: item.contact, size: 42)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(item.contact.fullName.isEmpty ? "Unknown Contact" : item.contact.fullName)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(colorForRelationshipStatus(relationshipStatus(for: item.contact).status))
+                            .frame(width: 6, height: 6)
+
+                        Text(item.contact.fullName.isEmpty ? "Unknown Contact" : item.contact.fullName)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                    }
 
                     if let followUpDate = item.interaction.followUpDate {
                         Text("Follow-up: \(followUpDate.formatted(date: .abbreviated, time: .shortened))")
@@ -506,6 +626,7 @@ struct TodayView: View {
                         .background(Capsule().fill(AppTheme.chipBackground))
                 }
                 .buttonStyle(.plain)
+                .buttonStyle(PressScaleButtonStyle())
 
                 Button("Mark Done") {
                     markFollowUpDone(item.interaction)
@@ -515,14 +636,16 @@ struct TodayView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(Capsule().fill(AppTheme.chipBackground))
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
         .padding(AppTheme.spacingMedium)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(AppTheme.cardBackground)
         )
+        .fadeInOnAppear()
     }
 
     private func contactForMeeting(_ meeting: MeetingEvent) -> Contact? {
@@ -556,7 +679,7 @@ struct TodayView: View {
 
     private func notesSummary(for contact: Contact?) -> String {
         guard let contact else {
-            return "No contact linked yet."
+            return "Create or link a contact to keep meeting context in one place."
         }
 
         let note = contact.notes.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -587,8 +710,8 @@ struct TodayView: View {
         }
 
         await notificationService.checkAuthorizationStatus()
-        if !notificationService.isAuthorized {
-            _ = await notificationService.requestAuthorization()
+        guard notificationService.isAuthorized else {
+            return
         }
 
         await notificationService.scheduleReminders(
@@ -638,6 +761,23 @@ struct TodayView: View {
         var updated = interaction
         updated.followUpDate = nil
         interactionRepository.update(updated)
+    }
+
+    private func relationshipStatus(for contact: Contact) -> (status: String, daysSince: Int?) {
+        interactionRepository.getRelationshipStatus(for: contact.id)
+    }
+
+    private func colorForRelationshipStatus(_ status: String) -> Color {
+        switch status {
+        case "Strong":
+            return .green
+        case "Medium":
+            return .orange
+        case "Weak":
+            return .red
+        default:
+            return .secondary
+        }
     }
 
     private func createContactFromMeeting(_ meeting: MeetingEvent) {
@@ -722,5 +862,10 @@ struct TodayView: View {
         }
         let index = trimmed.index(trimmed.startIndex, offsetBy: 90)
         return "\(trimmed[..<index])..."
+    }
+
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 }

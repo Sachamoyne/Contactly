@@ -7,11 +7,18 @@ struct ContactSyncStepView: View {
 
     @State private var showingPicker = false
     @State private var showingPermissionAlert = false
+    private let primaryBlue = Color(red: 37 / 255, green: 99 / 255, blue: 235 / 255)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Choose how to sync contacts")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("See context instantly")
+                    .font(.system(size: 30, weight: .bold))
+
+                Text("We match meetings with your contacts to show notes, last discussions, and follow-ups.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
 
             VStack(spacing: 12) {
                 actionButton("Sync all contacts") {
@@ -31,8 +38,13 @@ struct ContactSyncStepView: View {
                 }
             }
 
+            Text("Your contacts stay on your device.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
             if viewModel.isProcessing {
                 ProgressView("Syncing contacts...")
+                    .tint(primaryBlue)
             }
 
             Spacer()
@@ -66,7 +78,7 @@ struct ContactSyncStepView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(14)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
         }
         .buttonStyle(.plain)
     }

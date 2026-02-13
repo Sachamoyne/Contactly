@@ -6,22 +6,25 @@ import UserNotifications
 final class NotificationService {
     private let center = UNUserNotificationCenter.current()
     private(set) var isAuthorized = false
+    private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
     private let morningBriefingIdentifierPrefix = "morning-briefing-"
 
     func requestAuthorization() async -> Bool {
         do {
-            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-            isAuthorized = granted
-            return granted
+            _ = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            await checkAuthorizationStatus()
+            return isAuthorized
         } catch {
             isAuthorized = false
+            authorizationStatus = .denied
             return false
         }
     }
 
     func checkAuthorizationStatus() async {
         let settings = await center.notificationSettings()
-        isAuthorized = settings.authorizationStatus == .authorized
+        authorizationStatus = settings.authorizationStatus
+        isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
     }
 
     func scheduleReminders(for events: [CalendarEvent], settings: ReminderSettings) async {

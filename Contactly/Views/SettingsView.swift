@@ -1,16 +1,18 @@
 import Contacts
 import SwiftUI
 import UIKit
+import UserNotifications
 
 struct SettingsView: View {
     @Bindable var repository: SettingsRepository
     @Bindable var contactsViewModel: ContactsViewModel
     @Bindable var userProfileStore: UserProfileStore
     @Bindable var googleCalendarService: GoogleCalendarService
-    @Bindable var microsoftAuthService: MicrosoftAuthService
+    @Bindable var notificationService: NotificationService
     var appleCalendarService: CalendarService
     var calendarAggregatorService: CalendarAggregatorService
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var importService = ContactImportService()
     @State private var showingCalendarSelection = false
     @State private var showingContactImportDialog = false
@@ -25,86 +27,85 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Reminder Delay") {
-                Picker("Notify me", selection: $repository.settings.delayMinutes) {
+            Section("Calendar") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Connected calendar")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text(userProfileStore.profile.calendarProvider.displayName)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                }
+
+                Button("Choose Calendar Provider") {
+                    showingCalendarSelection = true
+                }
+                .buttonStyle(PressScaleButtonStyle())
+
+                if userProfileStore.profile.calendarProvider == .google {
+                    Button("Disconnect Google Calendar") {
+                        disconnectGoogle()
+                    }
+                    .foregroundStyle(.red.opacity(0.7))
+                    .buttonStyle(PressScaleButtonStyle())
+                }
+
+            }
+
+            Section("Notifications") {
+                if notificationService.authorizationStatus == .denied {
+                    HStack(alignment: .center, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundStyle(.secondary)
+                        Text("Notifications are disabled")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Open Settings") {
+                            openAppSettings()
+                        }
+                        .buttonStyle(PressScaleButtonStyle())
+                    }
+                }
+
+                Picker("Meeting reminder", selection: $repository.settings.delayMinutes) {
                     Text("5 minutes before").tag(5)
                     Text("10 minutes before").tag(10)
                     Text("15 minutes before").tag(15)
                     Text("30 minutes before").tag(30)
                     Text("1 hour before").tag(60)
                 }
-            }
-
-            Section("Quiet Hours") {
-                Toggle("Enable Quiet Hours", isOn: $repository.settings.quietHours.isEnabled)
+                Toggle("Quiet hours", isOn: $repository.settings.quietHours.isEnabled)
+                    .tint(AppTheme.accent)
 
                 if repository.settings.quietHours.isEnabled {
                     DatePicker(
-                        "Start",
+                        "Quiet hours start",
                         selection: quietHoursStartBinding,
                         displayedComponents: .hourAndMinute
                     )
                     DatePicker(
-                        "End",
+                        "Quiet hours end",
                         selection: quietHoursEndBinding,
                         displayedComponents: .hourAndMinute
                     )
                 }
             }
 
-            Section("Calendar") {
-                LabeledContent("Current Provider", value: userProfileStore.profile.calendarProvider.displayName)
-                LabeledContent("Connected Providers", value: connectedProvidersLabel)
-
-                Button("Change Provider") {
-                    showingCalendarSelection = true
-                }
-
-                Button("Re-sync Calendar") {
-                    Task {
-                        await resyncCalendar()
-                    }
-                }
-
-                if userProfileStore.profile.calendarProvider == .google {
-                    Button("Re-authenticate Google") {
-                        Task {
-                            await reconnectGoogle()
-                        }
-                    }
-
-                    Button("Disconnect Google", role: .destructive) {
-                        disconnectGoogle()
-                    }
-                }
-
-                if userProfileStore.profile.calendarProvider == .outlook {
-                    Button("Re-authenticate Outlook") {
-                        Task {
-                            await reconnectOutlook()
-                        }
-                    }
-
-                    Button("Disconnect Outlook", role: .destructive) {
-                        Task {
-                            await disconnectOutlook()
-                        }
-                    }
-                }
-            }
-
-            Section("Contacts") {
-                Button("Re-sync Contacts") {
+            Section("Preferences") {
+                Button("Import Contacts") {
                     showingContactImportDialog = true
                 }
+                .buttonStyle(PressScaleButtonStyle())
 
-                Button("Clear Imported Contacts", role: .destructive) {
+                Button("Clear Imported Contacts") {
                     showingClearContactsConfirmation = true
                 }
+                .foregroundStyle(.red.opacity(0.7))
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
         .navigationTitle("Settings")
-        .confirmationDialog("Calendar Provider", isPresented: $showingCalendarSelection) {
+        .confirmationDialog("Choose Calendar", isPresented: $showingCalendarSelection) {
             Button("Apple Calendar") {
                 Task {
                     await selectCalendarProvider(.apple)
@@ -117,26 +118,20 @@ struct SettingsView: View {
                 }
             }
 
-            Button("Outlook Calendar") {
-                Task {
-                    await selectCalendarProvider(.outlook)
-                }
-            }
-
             Button("No Calendar Sync") {
                 selectCalendarProviderNone()
             }
 
             Button("Cancel", role: .cancel) {}
         }
-        .confirmationDialog("Contact Sync", isPresented: $showingContactImportDialog) {
-            Button("Sync All Contacts") {
+        .confirmationDialog("Import Contacts", isPresented: $showingContactImportDialog) {
+            Button("Import All Contacts") {
                 Task {
                     await importAllContacts()
                 }
             }
 
-            Button("Select Contacts") {
+            Button("Choose Contacts") {
                 Task {
                     await prepareContactPicker()
                 }
@@ -180,7 +175,7 @@ struct SettingsView: View {
                 ZStack {
                     Color.black.opacity(0.15)
                         .ignoresSafeArea()
-                    ProgressView("Syncing...")
+                    ProgressView("Updating...")
                         .padding()
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
                 }
@@ -201,22 +196,15 @@ struct SettingsView: View {
         .onChange(of: repository.settings) {
             repository.save()
         }
-    }
-
-    private var connectedProvidersLabel: String {
-        var providers: [String] = []
-
-        providers.append("Apple")
-
-        if googleCalendarService.isSignedIn {
-            providers.append("Google")
+        .task {
+            await notificationService.checkAuthorizationStatus()
         }
-
-        if microsoftAuthService.isSignedIn {
-            providers.append("Outlook")
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            Task {
+                await notificationService.checkAuthorizationStatus()
+            }
         }
-
-        return providers.joined(separator: ", ")
     }
 
     private var quietHoursStartBinding: Binding<Date> {
@@ -262,9 +250,6 @@ struct SettingsView: View {
                 try await googleCalendarService.signIn()
                 _ = try await googleCalendarService.fetchUpcomingEvents(daysAhead: 1)
 
-            case .outlook:
-                try await microsoftAuthService.signIn()
-
             case .none:
                 break
             }
@@ -294,16 +279,6 @@ struct SettingsView: View {
         }
     }
 
-    private func reconnectOutlook() async {
-        do {
-            try await microsoftAuthService.signIn()
-            showToastMessage("Outlook re-authenticated")
-        } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? "Unable to reconnect Outlook."
-            showingErrorAlert = true
-        }
-    }
-
     private func disconnectGoogle() {
         googleCalendarService.signOut()
         if userProfileStore.profile.calendarProvider == .google {
@@ -311,15 +286,6 @@ struct SettingsView: View {
             repository.setCalendarProviders([])
         }
         showToastMessage("Google disconnected")
-    }
-
-    private func disconnectOutlook() async {
-        await microsoftAuthService.signOut()
-        if userProfileStore.profile.calendarProvider == .outlook {
-            updateProfileCalendarProvider(.none)
-            repository.setCalendarProviders([])
-        }
-        showToastMessage("Outlook disconnected")
     }
 
     private func resyncCalendar() async {
