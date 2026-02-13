@@ -11,8 +11,14 @@ struct ContactView: View {
         viewModel.repository.contacts.first { $0.id == contact.id } ?? contact
     }
 
-    private var recentInteractions: [Interaction] {
-        Array(interactionRepository.listByContact(contactId: currentContact.id).prefix(3))
+    private static let timelineDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM yyyy"
+        return formatter
+    }()
+
+    private var timelineInteractions: [Interaction] {
+        interactionRepository.getInteractions(for: currentContact.id)
     }
 
     private var relationshipStatus: (status: String, daysSince: Int?) {
@@ -30,6 +36,16 @@ struct ContactView: View {
         default:
             return .secondary
         }
+    }
+
+    private func formattedTimelineDate(_ date: Date) -> String {
+        Self.timelineDateFormatter.string(from: date)
+    }
+
+    private func notesPreview(_ notes: String) -> String {
+        let trimmed = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > 120 else { return trimmed }
+        return "\(trimmed.prefix(120))..."
     }
 
     var body: some View {
@@ -79,6 +95,55 @@ struct ContactView: View {
                 }
             }
 
+            Section("Timeline") {
+                if timelineInteractions.isEmpty {
+                    Text("No meetings recorded yet.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(timelineInteractions) { interaction in
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text(formattedTimelineDate(interaction.startDate))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                Spacer()
+                            }
+
+                            Text(interaction.title)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+
+                            Text(notesPreview(interaction.notes))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(3)
+
+                            if let followUpDate = interaction.followUpDate {
+                                Text("Follow-up: \(formattedTimelineDate(followUpDate))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color(.tertiarySystemFill))
+                                    )
+                            }
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color(.secondarySystemGroupedBackground))
+                        )
+                        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                        .listRowSeparator(.hidden)
+                    }
+                }
+            }
+
             // MARK: Contact Info
             if !currentContact.phone.isEmpty || !currentContact.email.isEmpty {
                 Section("Contact Info") {
@@ -117,29 +182,6 @@ struct ContactView: View {
                 Section("Notes") {
                     Text(currentContact.notes)
                         .font(.body)
-                }
-            }
-
-            if !recentInteractions.isEmpty {
-                Section("Recent Interactions") {
-                    ForEach(recentInteractions) { interaction in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(interaction.title)
-                                    .font(.subheadline.weight(.semibold))
-                                Spacer()
-                                Text(interaction.startDate.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Text(interaction.notes)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
-                        }
-                        .padding(.vertical, 2)
-                    }
                 }
             }
 

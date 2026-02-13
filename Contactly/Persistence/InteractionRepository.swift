@@ -46,6 +46,12 @@ final class InteractionRepository {
             .sorted { $0.startDate > $1.startDate }
     }
 
+    func getInteractions(for contactId: UUID) -> [Interaction] {
+        interactions
+            .filter { $0.contactId == contactId }
+            .sorted { $0.startDate > $1.startDate }
+    }
+
     func listRecent(limit: Int) -> [Interaction] {
         interactions
             .sorted { $0.startDate > $1.startDate }

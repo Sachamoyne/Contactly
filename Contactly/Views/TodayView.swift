@@ -43,6 +43,8 @@ struct TodayView: View {
     @State private var addInteractionContext: InteractionContext?
     @State private var afterMeetingPrompt: InteractionContext?
     @State private var promptedMeetingKeys: Set<String> = []
+    @State private var createdContactForEditing: Contact?
+    @State private var showingContactExistsAlert = false
 
     init(
         meetingService: MeetingService,
@@ -160,12 +162,18 @@ struct TodayView: View {
                 }
             }
         }
+        .sheet(item: $createdContactForEditing) { contact in
+            EditContactView(viewModel: contactsViewModel, contact: contact)
+        }
         .alert("Meeting Sync", isPresented: $showingErrorAlert) {
             Button("OK", role: .cancel) {
                 viewModel.errorMessage = nil
             }
         } message: {
             Text(viewModel.errorMessage ?? "")
+        }
+        .alert("Contact already exists", isPresented: $showingContactExistsAlert) {
+            Button("OK", role: .cancel) { }
         }
         .alert(
             "Add meeting notes?",
@@ -355,6 +363,15 @@ struct TodayView: View {
                     .padding(.vertical, 10)
                     .background(Capsule().fill(AppTheme.chipBackground))
                 }
+            } else {
+                Button("Create Contact") {
+                    createContactFromMeeting(meeting)
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Capsule().fill(AppTheme.chipBackground))
             }
         }
         .padding(AppTheme.spacingLarge)
@@ -405,6 +422,12 @@ struct TodayView: View {
             if let matchedContact {
                 Button("Prep") {
                     prepContext = PrepContext(meeting: meeting, contact: matchedContact)
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+            } else {
+                Button("Create Contact") {
+                    createContactFromMeeting(meeting)
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
@@ -615,6 +638,80 @@ struct TodayView: View {
         var updated = interaction
         updated.followUpDate = nil
         interactionRepository.update(updated)
+    }
+
+    private func createContactFromMeeting(_ meeting: MeetingEvent) {
+        let extracted = extractContactDraft(from: meeting)
+        let fullName = [extracted.firstName, extracted.lastName]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+
+        if contactsViewModel.repository.findByEmailOrFullName(
+            email: extracted.email,
+            fullName: fullName
+        ) != nil {
+            showingContactExistsAlert = true
+            return
+        }
+
+        let newContact = Contact(
+            firstName: extracted.firstName,
+            lastName: extracted.lastName,
+            email: extracted.email,
+            notes: "",
+            tags: [],
+            createdAt: Date()
+        )
+
+        contactsViewModel.addContact(newContact)
+        createdContactForEditing = newContact
+    }
+
+    private func extractContactDraft(from meeting: MeetingEvent) -> (firstName: String, lastName: String, email: String) {
+        if let attendeeEmail = meeting.attendeeEmails.first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+            let nameSource = attendeeName(from: attendeeEmail)
+            let split = splitName(nameSource)
+            return (split.firstName, split.lastName, attendeeEmail)
+        }
+
+        let split = splitName(meeting.title)
+        return (split.firstName, split.lastName, "")
+    }
+
+    private func attendeeName(from email: String) -> String {
+        let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let localPart = normalized.split(separator: "@").first else {
+            return normalized
+        }
+
+        let cleaned = localPart
+            .replacingOccurrences(of: ".", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleaned.isEmpty else { return normalized }
+        return cleaned
+            .split(whereSeparator: \.isWhitespace)
+            .map { token in
+                token.prefix(1).uppercased() + token.dropFirst().lowercased()
+            }
+            .joined(separator: " ")
+    }
+
+    private func splitName(_ raw: String) -> (firstName: String, lastName: String) {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.split(whereSeparator: \.isWhitespace).map(String.init)
+
+        if parts.count >= 2 {
+            return (parts[0], parts.dropFirst().joined(separator: " "))
+        }
+
+        if let only = parts.first, !only.isEmpty {
+            return (only, "")
+        }
+
+        return ("Unknown", "")
     }
 
     private func notesPreview(_ notes: String) -> String {

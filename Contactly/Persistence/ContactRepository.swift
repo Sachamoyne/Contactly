@@ -57,6 +57,20 @@ final class ContactRepository {
         }
     }
 
+    func findByEmailOrFullName(email: String, fullName: String) -> Contact? {
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let normalizedFullName = fullName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        return contacts.first { contact in
+            let contactEmail = contact.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let contactFullName = contact.fullName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+            let emailMatches = !normalizedEmail.isEmpty && !contactEmail.isEmpty && contactEmail == normalizedEmail
+            let fullNameMatches = !normalizedFullName.isEmpty && !contactFullName.isEmpty && contactFullName == normalizedFullName
+            return emailMatches || fullNameMatches
+        }
+    }
+
     static var preview: ContactRepository {
         let repo = ContactRepository()
         repo.contacts = Contact.previewList
