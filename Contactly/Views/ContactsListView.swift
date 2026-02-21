@@ -166,13 +166,13 @@ struct ContactsListView: View {
 
             Button("Cancel", role: .cancel) {}
         }
-        .alert("Contacts Access Needed", isPresented: $showPermissionDeniedAlert) {
+        .alert("Contacts Access Disabled", isPresented: $showPermissionDeniedAlert) {
             Button("Open Settings") {
                 openAppSettings()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Please allow Contacts access in Settings to import your iPhone contacts.")
+            Text("Please enable Contacts access in Settings to use this feature.")
         }
         .overlay {
             if isImporting {

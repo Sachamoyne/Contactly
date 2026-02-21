@@ -31,7 +31,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.primary)
 
-                Text("Import all your contacts once to start building relationship context.")
+                Text("Contactly needs access to your contacts to associate meetings with people you know.")
                     .font(.subheadline)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
@@ -44,7 +44,7 @@ struct OnboardingView: View {
                         await importAllContactsAndFinishOnboarding()
                     }
                 } label: {
-                    Text("Importer tous mes contacts")
+                    Text("Continue")
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -70,13 +70,13 @@ struct OnboardingView: View {
                 }
             }
         }
-        .alert("Contacts Access Needed", isPresented: $showPermissionAlert) {
+        .alert("Contacts Access Disabled", isPresented: $showPermissionAlert) {
             Button("Open Settings") {
                 openAppSettings()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Please allow Contacts access in Settings to continue.")
+            Text("Please enable Contacts access in Settings to use this feature.")
         }
         .alert("Import Failed", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) {}
