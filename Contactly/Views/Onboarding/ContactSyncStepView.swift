@@ -58,13 +58,13 @@ struct ContactSyncStepView: View {
                 onCancel: {}
             )
         }
-        .alert("Contacts Access Needed", isPresented: $showingPermissionAlert) {
+        .alert("Contacts Access Disabled", isPresented: $showingPermissionAlert) {
             Button("Open Settings") {
                 openSettings()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Allow contacts access in Settings to sync your address book.")
+            Text("Please enable Contacts access in Settings to use this feature.")
         }
     }
 
