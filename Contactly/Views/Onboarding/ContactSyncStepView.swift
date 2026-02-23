@@ -93,7 +93,7 @@ struct ContactSyncStepView: View {
     private func selectContacts() async {
         let granted = await viewModel.contactImportService.requestAccess()
         guard granted else {
-            showingPermissionAlert = true
+            viewModel.skipContactSyncAndContinue()
             return
         }
         showingPicker = true

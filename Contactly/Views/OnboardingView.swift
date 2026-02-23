@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct OnboardingView: View {
     let contactRepository: ContactRepository
@@ -7,7 +6,6 @@ struct OnboardingView: View {
 
     @State private var importService = ContactImportService()
     @State private var isImporting = false
-    @State private var showPermissionAlert = false
     @State private var showErrorAlert = false
 
     var body: some View {
@@ -70,14 +68,6 @@ struct OnboardingView: View {
                 }
             }
         }
-        .alert("Contacts Access Disabled", isPresented: $showPermissionAlert) {
-            Button("Open Settings") {
-                openAppSettings()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Please enable Contacts access in Settings to use this feature.")
-        }
         .alert("Import Failed", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -86,23 +76,22 @@ struct OnboardingView: View {
     }
 
     private func importAllContactsAndFinishOnboarding() async {
-        guard await importService.requestAccess() else {
-            showPermissionAlert = true
-            return
-        }
+        let hasAccess = await importService.requestAccess()
+        if hasAccess {
+            isImporting = true
+            defer { isImporting = false }
 
-        isImporting = true
-        defer { isImporting = false }
-
-        do {
-            let rawContacts = try await importService.fetchAllContactsAsync()
-            let mappedContacts = importService.mapContacts(rawContacts)
-            let importedCount = saveUniqueContacts(mappedContacts)
-            print("[ContactImport] Imported \(importedCount) / \(mappedContacts.count) contacts during onboarding.")
-            userProfileStore.completeOnboarding()
-        } catch {
-            showErrorAlert = true
+            do {
+                let rawContacts = try await importService.fetchAllContactsAsync()
+                let mappedContacts = importService.mapContacts(rawContacts)
+                let importedCount = saveUniqueContacts(mappedContacts)
+                print("[ContactImport] Imported \(importedCount) / \(mappedContacts.count) contacts during onboarding.")
+            } catch {
+                showErrorAlert = true
+                return
+            }
         }
+        userProfileStore.completeOnboarding()
     }
 
     private func saveUniqueContacts(_ contacts: [Contact]) -> Int {
@@ -143,8 +132,4 @@ struct OnboardingView: View {
         return value.isEmpty ? nil : value
     }
 
-    private func openAppSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
-    }
 }

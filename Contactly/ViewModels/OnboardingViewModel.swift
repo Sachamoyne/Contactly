@@ -132,7 +132,9 @@ final class OnboardingViewModel {
         defer { isProcessing = false }
 
         guard await contactImportService.requestAccess() else {
-            errorMessage = "Contacts access is required to import all contacts."
+            selectedContactSyncOption = .none
+            persistProfile()
+            currentStep = .completion
             return
         }
 
