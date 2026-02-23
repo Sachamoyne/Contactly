@@ -42,7 +42,7 @@ struct OnboardingView: View {
                         await importAllContactsAndFinishOnboarding()
                     }
                 } label: {
-                    Text("Continue")
+                    Text("Importer tous mes contacts")
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -52,6 +52,14 @@ struct OnboardingView: View {
                                 .fill(AppTheme.accent)
                         )
                 }
+                .buttonStyle(PressScaleButtonStyle())
+                .disabled(isImporting)
+
+                Button("Continuer sans importer") {
+                    userProfileStore.completeOnboarding()
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
                 .buttonStyle(PressScaleButtonStyle())
                 .disabled(isImporting)
             }
