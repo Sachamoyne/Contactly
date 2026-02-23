@@ -82,7 +82,7 @@ struct ContactlyApp: App {
         WindowGroup {
             Group {
                 if userProfileStore.hasCompletedOnboarding {
-                    ContentView(
+                    RootTabView(
                         calendarService: calendarService,
                         googleCalendarService: googleCalendarService,
                         userProfileStore: userProfileStore,

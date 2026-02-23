@@ -151,13 +151,13 @@ struct SettingsView: View {
                 onCancel: {}
             )
         }
-        .alert("Contacts Access Disabled", isPresented: $showingPermissionDeniedAlert) {
+        .alert("Permission Required", isPresented: $showingPermissionDeniedAlert) {
             Button("Open Settings") {
                 openAppSettings()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Please enable Contacts access in Settings to use this feature.")
+            Text("Please allow access in iOS Settings to continue.")
         }
         .alert("Settings", isPresented: $showingErrorAlert) {
             Button("OK", role: .cancel) {}

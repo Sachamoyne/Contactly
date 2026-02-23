@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ContentView: View {
+struct RootTabView: View {
     var calendarService: CalendarService
     var googleCalendarService: GoogleCalendarService
     var userProfileStore: UserProfileStore

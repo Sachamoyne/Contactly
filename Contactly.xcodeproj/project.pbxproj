@@ -1,0 +1,686 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4FC6E4582F43B6E400F4B2DF /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 4FC6E4572F43B6E400F4B2DF /* GoogleSignIn */; };
+		4FC6E45A2F43B6E700F4B2DF /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 4FC6E4592F43B6E700F4B2DF /* GoogleSignInSwift */; };
+		4FC6E45C2F43B6EF00F4B2DF /* AppAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4FC6E45B2F43B6EF00F4B2DF /* AppAuth */; };
+		4FC6E45E2F43B6F200F4B2DF /* AppAuthCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4FC6E45D2F43B6F200F4B2DF /* AppAuthCore */; };
+		4FC6E4602F43B6F500F4B2DF /* AppAuthTV in Frameworks */ = {isa = PBXBuildFile; productRef = 4FC6E45F2F43B6F500F4B2DF /* AppAuthTV */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4FC6E3B62F43B3EE00F4B2DF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4FC6E3A02F43B3ED00F4B2DF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4FC6E3A72F43B3ED00F4B2DF;
+			remoteInfo = Contactly;
+		};
+		4FC6E3C02F43B3EE00F4B2DF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4FC6E3A02F43B3ED00F4B2DF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4FC6E3A72F43B3ED00F4B2DF;
+			remoteInfo = Contactly;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		4FC6E3A82F43B3ED00F4B2DF /* Contactly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Contactly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FC6E3B52F43B3EE00F4B2DF /* ContactlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ContactlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FC6E3BF2F43B3EE00F4B2DF /* ContactlyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ContactlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4FC6E4522F43B5D800F4B2DF /* Exceptions for "Contactly" folder in "Contactly" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4FC6E3A72F43B3ED00F4B2DF /* Contactly */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4FC6E3AA2F43B3ED00F4B2DF /* Contactly */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4FC6E4522F43B5D800F4B2DF /* Exceptions for "Contactly" folder in "Contactly" target */,
+			);
+			path = Contactly;
+			sourceTree = "<group>";
+		};
+		4FC6E3B82F43B3EE00F4B2DF /* ContactlyTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ContactlyTests;
+			sourceTree = "<group>";
+		};
+		4FC6E3C22F43B3EE00F4B2DF /* ContactlyUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ContactlyUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4FC6E3A52F43B3ED00F4B2DF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4FC6E45C2F43B6EF00F4B2DF /* AppAuth in Frameworks */,
+				4FC6E4582F43B6E400F4B2DF /* GoogleSignIn in Frameworks */,
+				4FC6E4602F43B6F500F4B2DF /* AppAuthTV in Frameworks */,
+				4FC6E45A2F43B6E700F4B2DF /* GoogleSignInSwift in Frameworks */,
+				4FC6E45E2F43B6F200F4B2DF /* AppAuthCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FC6E3B22F43B3EE00F4B2DF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FC6E3BC2F43B3EE00F4B2DF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4FC6E39F2F43B3ED00F4B2DF = {
+			isa = PBXGroup;
+			children = (
+				4FC6E3AA2F43B3ED00F4B2DF /* Contactly */,
+				4FC6E3B82F43B3EE00F4B2DF /* ContactlyTests */,
+				4FC6E3C22F43B3EE00F4B2DF /* ContactlyUITests */,
+				4FC6E4562F43B6DA00F4B2DF /* Frameworks */,
+				4FC6E3A92F43B3ED00F4B2DF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4FC6E3A92F43B3ED00F4B2DF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4FC6E3A82F43B3ED00F4B2DF /* Contactly.app */,
+				4FC6E3B52F43B3EE00F4B2DF /* ContactlyTests.xctest */,
+				4FC6E3BF2F43B3EE00F4B2DF /* ContactlyUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4FC6E4562F43B6DA00F4B2DF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4FC6E3A72F43B3ED00F4B2DF /* Contactly */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FC6E3C92F43B3EE00F4B2DF /* Build configuration list for PBXNativeTarget "Contactly" */;
+			buildPhases = (
+				4FC6E3A42F43B3ED00F4B2DF /* Sources */,
+				4FC6E3A52F43B3ED00F4B2DF /* Frameworks */,
+				4FC6E3A62F43B3ED00F4B2DF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4FC6E3AA2F43B3ED00F4B2DF /* Contactly */,
+			);
+			name = Contactly;
+			packageProductDependencies = (
+				4FC6E4572F43B6E400F4B2DF /* GoogleSignIn */,
+				4FC6E4592F43B6E700F4B2DF /* GoogleSignInSwift */,
+				4FC6E45B2F43B6EF00F4B2DF /* AppAuth */,
+				4FC6E45D2F43B6F200F4B2DF /* AppAuthCore */,
+				4FC6E45F2F43B6F500F4B2DF /* AppAuthTV */,
+			);
+			productName = Contactly;
+			productReference = 4FC6E3A82F43B3ED00F4B2DF /* Contactly.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4FC6E3B42F43B3EE00F4B2DF /* ContactlyTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FC6E3CC2F43B3EE00F4B2DF /* Build configuration list for PBXNativeTarget "ContactlyTests" */;
+			buildPhases = (
+				4FC6E3B12F43B3EE00F4B2DF /* Sources */,
+				4FC6E3B22F43B3EE00F4B2DF /* Frameworks */,
+				4FC6E3B32F43B3EE00F4B2DF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4FC6E3B72F43B3EE00F4B2DF /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4FC6E3B82F43B3EE00F4B2DF /* ContactlyTests */,
+			);
+			name = ContactlyTests;
+			packageProductDependencies = (
+			);
+			productName = ContactlyTests;
+			productReference = 4FC6E3B52F43B3EE00F4B2DF /* ContactlyTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4FC6E3BE2F43B3EE00F4B2DF /* ContactlyUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FC6E3CF2F43B3EE00F4B2DF /* Build configuration list for PBXNativeTarget "ContactlyUITests" */;
+			buildPhases = (
+				4FC6E3BB2F43B3EE00F4B2DF /* Sources */,
+				4FC6E3BC2F43B3EE00F4B2DF /* Frameworks */,
+				4FC6E3BD2F43B3EE00F4B2DF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4FC6E3C12F43B3EE00F4B2DF /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4FC6E3C22F43B3EE00F4B2DF /* ContactlyUITests */,
+			);
+			name = ContactlyUITests;
+			packageProductDependencies = (
+			);
+			productName = ContactlyUITests;
+			productReference = 4FC6E3BF2F43B3EE00F4B2DF /* ContactlyUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4FC6E3A02F43B3ED00F4B2DF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					4FC6E3A72F43B3ED00F4B2DF = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					4FC6E3B42F43B3EE00F4B2DF = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 4FC6E3A72F43B3ED00F4B2DF;
+					};
+					4FC6E3BE2F43B3EE00F4B2DF = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 4FC6E3A72F43B3ED00F4B2DF;
+					};
+				};
+			};
+			buildConfigurationList = 4FC6E3A32F43B3ED00F4B2DF /* Build configuration list for PBXProject "Contactly" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4FC6E39F2F43B3ED00F4B2DF;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4FC6E4532F43B60800F4B2DF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				4FC6E4542F43B61300F4B2DF /* XCRemoteSwiftPackageReference "AppAuth-iOS" */,
+				4FC6E4552F43B62500F4B2DF /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4FC6E3A92F43B3ED00F4B2DF /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4FC6E3A72F43B3ED00F4B2DF /* Contactly */,
+				4FC6E3B42F43B3EE00F4B2DF /* ContactlyTests */,
+				4FC6E3BE2F43B3EE00F4B2DF /* ContactlyUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4FC6E3A62F43B3ED00F4B2DF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FC6E3B32F43B3EE00F4B2DF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FC6E3BD2F43B3EE00F4B2DF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4FC6E3A42F43B3ED00F4B2DF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FC6E3B12F43B3EE00F4B2DF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FC6E3BB2F43B3EE00F4B2DF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4FC6E3B72F43B3EE00F4B2DF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4FC6E3A72F43B3ED00F4B2DF /* Contactly */;
+			targetProxy = 4FC6E3B62F43B3EE00F4B2DF /* PBXContainerItemProxy */;
+		};
+		4FC6E3C12F43B3EE00F4B2DF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4FC6E3A72F43B3ED00F4B2DF /* Contactly */;
+			targetProxy = 4FC6E3C02F43B3EE00F4B2DF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4FC6E3C72F43B3EE00F4B2DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = CK47UN75PT;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4FC6E3C82F43B3EE00F4B2DF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = CK47UN75PT;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4FC6E3CA2F43B3EE00F4B2DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CK47UN75PT;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Contactly/Info.plist;
+				INFOPLIST_KEY_NSContactsUsageDescription = "Contactly utilise vos contacts afin de vous permettre d’associer des informations à vos relations et de préparer vos rendez-vous.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sachamoyne.contactly;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4FC6E3CB2F43B3EE00F4B2DF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CK47UN75PT;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Contactly/Info.plist;
+				INFOPLIST_KEY_NSContactsUsageDescription = "Contactly utilise vos contacts afin de vous permettre d’associer des informations à vos relations et de préparer vos rendez-vous.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sachamoyne.contactly;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4FC6E3CD2F43B3EE00F4B2DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CK47UN75PT;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sacha.ContactlyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Contactly.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Contactly";
+			};
+			name = Debug;
+		};
+		4FC6E3CE2F43B3EE00F4B2DF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CK47UN75PT;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sacha.ContactlyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Contactly.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Contactly";
+			};
+			name = Release;
+		};
+		4FC6E3D02F43B3EE00F4B2DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CK47UN75PT;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sacha.ContactlyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Contactly;
+			};
+			name = Debug;
+		};
+		4FC6E3D12F43B3EE00F4B2DF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CK47UN75PT;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sacha.ContactlyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Contactly;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4FC6E3A32F43B3ED00F4B2DF /* Build configuration list for PBXProject "Contactly" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FC6E3C72F43B3EE00F4B2DF /* Debug */,
+				4FC6E3C82F43B3EE00F4B2DF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FC6E3C92F43B3EE00F4B2DF /* Build configuration list for PBXNativeTarget "Contactly" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FC6E3CA2F43B3EE00F4B2DF /* Debug */,
+				4FC6E3CB2F43B3EE00F4B2DF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FC6E3CC2F43B3EE00F4B2DF /* Build configuration list for PBXNativeTarget "ContactlyTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FC6E3CD2F43B3EE00F4B2DF /* Debug */,
+				4FC6E3CE2F43B3EE00F4B2DF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FC6E3CF2F43B3EE00F4B2DF /* Build configuration list for PBXNativeTarget "ContactlyUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FC6E3D02F43B3EE00F4B2DF /* Debug */,
+				4FC6E3D12F43B3EE00F4B2DF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4FC6E4532F43B60800F4B2DF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
+		4FC6E4542F43B61300F4B2DF /* XCRemoteSwiftPackageReference "AppAuth-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/openid/AppAuth-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+		4FC6E4552F43B62500F4B2DF /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AzureAD/microsoft-authentication-library-for-objc.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4FC6E4572F43B6E400F4B2DF /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4FC6E4532F43B60800F4B2DF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		4FC6E4592F43B6E700F4B2DF /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4FC6E4532F43B60800F4B2DF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+		4FC6E45B2F43B6EF00F4B2DF /* AppAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4FC6E4542F43B61300F4B2DF /* XCRemoteSwiftPackageReference "AppAuth-iOS" */;
+			productName = AppAuth;
+		};
+		4FC6E45D2F43B6F200F4B2DF /* AppAuthCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4FC6E4542F43B61300F4B2DF /* XCRemoteSwiftPackageReference "AppAuth-iOS" */;
+			productName = AppAuthCore;
+		};
+		4FC6E45F2F43B6F500F4B2DF /* AppAuthTV */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4FC6E4542F43B61300F4B2DF /* XCRemoteSwiftPackageReference "AppAuth-iOS" */;
+			productName = AppAuthTV;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4FC6E3A02F43B3ED00F4B2DF /* Project object */;
+}

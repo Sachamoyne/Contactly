@@ -29,7 +29,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.primary)
 
-                Text("Contactly needs access to your contacts to associate meetings with people you know.")
+                Text("Import all your contacts once to start building relationship context.")
                     .font(.subheadline)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
@@ -37,34 +37,37 @@ struct OnboardingView: View {
 
                 Spacer()
 
-                Button {
-                    Task {
-                        await importAllContactsAndFinishOnboarding()
+                VStack(spacing: 16) {
+                    Button {
+                        Task {
+                            await importAllContactsAndFinishOnboarding()
+                        }
+                    } label: {
+                        Text("Importer tous mes contacts")
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(AppTheme.accent)
+                            )
                     }
-                } label: {
-                    Text("Importer tous mes contacts")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(AppTheme.accent)
-                        )
-                }
-                .buttonStyle(PressScaleButtonStyle())
-                .disabled(isImporting)
+                    .buttonStyle(PressScaleButtonStyle())
+                    .disabled(isImporting)
 
-                Button("Continuer sans importer") {
-                    userProfileStore.completeOnboarding()
+                    Button("Continuer sans importer") {
+                        userProfileStore.completeOnboarding()
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .buttonStyle(PressScaleButtonStyle())
+                    .disabled(isImporting)
                 }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .buttonStyle(PressScaleButtonStyle())
-                .disabled(isImporting)
+                .padding(.bottom, 40)
             }
             .padding(.horizontal, 24)
-            .padding(.vertical, 32)
+            .padding(.top, 32)
 
             if isImporting {
                 ZStack {
@@ -139,5 +142,4 @@ struct OnboardingView: View {
         let value = phone.filter { $0.isWholeNumber }
         return value.isEmpty ? nil : value
     }
-
 }
