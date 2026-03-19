@@ -32,6 +32,18 @@ struct ContactView: View {
         interactionRepository.getRelationshipStatus(for: currentContact.id)
     }
 
+    private var insightLastInteractionDate: Date? {
+        currentContact.lastInteractionDate(from: timelineInteractions)
+    }
+
+    private var insightDaysSinceLastInteraction: Int? {
+        currentContact.daysSinceLastInteraction(from: timelineInteractions)
+    }
+
+    private var insightInteractionFrequencyDays: Int? {
+        currentContact.interactionFrequencyDays(from: timelineInteractions)
+    }
+
     private var relationshipType: RelationshipType {
         currentContact.relationshipType
     }
@@ -141,6 +153,35 @@ struct ContactView: View {
                 }
             } header: {
                 Text("Relationship")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(relationshipType.color.opacity(0.85))
+                    .textCase(nil)
+            }
+
+            Section {
+                if timelineInteractions.isEmpty {
+                    Text("No interactions yet.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let last = insightLastInteractionDate {
+                            Text("Last contact: \(DateUtils.formatDate(last))")
+                        }
+
+                        if let days = insightDaysSinceLastInteraction {
+                            Text("Last interaction: \(DateUtils.formatRelativeDays(days))")
+                                .foregroundStyle(recencyColor(days))
+                        }
+
+                        if let frequency = insightInteractionFrequencyDays {
+                            Text("Frequency: ~ every \(frequency) days")
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            } header: {
+                Text("Contact insights")
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(relationshipType.color.opacity(0.85))
                     .textCase(nil)
@@ -314,6 +355,12 @@ struct ContactView: View {
         case .interest, .spouse, .children:
             return info.value
         }
+    }
+
+    private func recencyColor(_ days: Int) -> Color {
+        if days < 7 { return .green }
+        if days <= 30 { return .orange }
+        return .red
     }
 
     private var birthdayStorageFormatter: DateFormatter {

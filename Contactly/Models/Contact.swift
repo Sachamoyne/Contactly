@@ -205,3 +205,32 @@ struct Contact: Codable, Hashable, Identifiable {
         Contact(firstName: "Emma", lastName: "Bernard", company: "MediaGroup", email: "emma@media.fr", tags: ["press"]),
     ]
 }
+
+extension Contact {
+    func lastInteractionDate(from interactions: [Interaction]) -> Date? {
+        interactions
+            .filter { $0.contactId == id }
+            .map(\.date)
+            .sorted(by: >)
+            .first
+    }
+
+    func daysSinceLastInteraction(from interactions: [Interaction], now: Date = Date()) -> Int? {
+        guard let lastDate = lastInteractionDate(from: interactions) else { return nil }
+        return Calendar.current.dateComponents([.day], from: lastDate, to: now).day
+    }
+
+    func interactionFrequencyDays(from interactions: [Interaction]) -> Int? {
+        let sorted = interactions
+            .filter { $0.contactId == id }
+            .map(\.date)
+            .sorted()
+
+        guard sorted.count >= 2, let first = sorted.first, let last = sorted.last else {
+            return nil
+        }
+
+        let totalDays = Calendar.current.dateComponents([.day], from: first, to: last).day ?? 0
+        return totalDays / (sorted.count - 1)
+    }
+}

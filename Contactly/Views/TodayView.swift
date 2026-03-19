@@ -3,10 +3,13 @@ import UIKit
 
 private struct PrepContext: Identifiable {
     let meeting: MeetingEvent
-    let contact: Contact
+    let contact: Contact?
 
     var id: String {
-        "\(meeting.id)-\(contact.id.uuidString)"
+        if let contact {
+            return "\(meeting.id)-\(contact.id.uuidString)"
+        }
+        return "\(meeting.id)-unlinked"
     }
 }
 
@@ -149,10 +152,14 @@ struct TodayView: View {
         }
         .sheet(item: $prepContext) { context in
             NavigationStack {
-                PrepView(
+                PrepMeetingView(
                     meeting: context.meeting,
                     contact: context.contact,
-                    interactionRepository: interactionRepository
+                    interactionRepository: interactionRepository,
+                    onLinkToContact: {
+                        prepContext = nil
+                        showingContactsFromEmptyState = true
+                    }
                 )
             }
         }
@@ -376,7 +383,7 @@ struct TodayView: View {
                     .buttonStyle(.plain)
 
                     Button("Prep") {
-                        prepContext = PrepContext(meeting: meeting, contact: matchedContact)
+                        openPrep(for: meeting)
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.accent)
@@ -387,17 +394,33 @@ struct TodayView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                Button("Create Contact") {
-                    createContactFromMeeting(meeting)
+                HStack(spacing: 8) {
+                    Button("Prep") {
+                        openPrep(for: meeting)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.accent)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(AppTheme.chipBackground))
+                    .buttonStyle(PressScaleButtonStyle())
+
+                    Button("Create Contact") {
+                        createContactFromMeeting(meeting)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.accent)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(AppTheme.chipBackground))
+                    .buttonStyle(PressScaleButtonStyle())
                 }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accent)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Capsule().fill(AppTheme.chipBackground))
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .buttonStyle(PressScaleButtonStyle())
             }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            openPrep(for: meeting)
         }
         .padding(AppTheme.spacingLarge)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -449,19 +472,32 @@ struct TodayView: View {
 
             if let matchedContact {
                 Button("Prep") {
-                    prepContext = PrepContext(meeting: meeting, contact: matchedContact)
+                    openPrep(for: meeting)
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
                 .buttonStyle(PressScaleButtonStyle())
             } else {
-                Button("Create Contact") {
-                    createContactFromMeeting(meeting)
+                HStack(spacing: 10) {
+                    Button("Prep") {
+                        openPrep(for: meeting)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.accent)
+                    .buttonStyle(PressScaleButtonStyle())
+
+                    Button("Create Contact") {
+                        createContactFromMeeting(meeting)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.accent)
+                    .buttonStyle(PressScaleButtonStyle())
                 }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accent)
-                .buttonStyle(PressScaleButtonStyle())
             }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            openPrep(for: meeting)
         }
         .padding(AppTheme.spacingMedium)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -668,6 +704,13 @@ struct TodayView: View {
                 token.count >= 3 && title.contains(token)
             }
         }
+    }
+
+    private func openPrep(for meeting: MeetingEvent) {
+        prepContext = PrepContext(
+            meeting: meeting,
+            contact: contactForMeeting(meeting)
+        )
     }
 
     private func notesSummary(for contact: Contact?) -> String {
