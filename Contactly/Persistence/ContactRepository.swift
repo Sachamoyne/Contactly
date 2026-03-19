@@ -4,10 +4,12 @@ import Observation
 @Observable
 final class ContactRepository {
     private static let filename = "contacts.json"
+    private let notificationService: NotificationService
 
     private(set) var contacts: [Contact] = []
 
-    init() {
+    init(notificationService: NotificationService = .shared) {
+        self.notificationService = notificationService
         load()
     }
 
@@ -27,28 +29,34 @@ final class ContactRepository {
     func add(_ contact: Contact) {
         contacts.append(contact)
         save()
+        notificationService.scheduleBirthdayNotification(for: contact)
     }
 
     func update(_ contact: Contact) {
         guard let index = contacts.firstIndex(where: { $0.id == contact.id }) else { return }
         contacts[index] = contact
         save()
+        notificationService.scheduleBirthdayNotification(for: contact)
     }
 
     func delete(_ contact: Contact) {
         contacts.removeAll { $0.id == contact.id }
         save()
+        notificationService.removeBirthdayNotification(for: contact.id)
     }
 
     func clear() {
+        let deletedIDs = contacts.map(\.id)
         contacts.removeAll()
         save()
+        deletedIDs.forEach { notificationService.removeBirthdayNotification(for: $0) }
     }
 
     func delete(at offsets: IndexSet, in sortedContacts: [Contact]) {
         let idsToDelete = offsets.map { sortedContacts[$0].id }
         contacts.removeAll { idsToDelete.contains($0.id) }
         save()
+        idsToDelete.forEach { notificationService.removeBirthdayNotification(for: $0) }
     }
 
     func sortedByName() -> [Contact] {
@@ -72,17 +80,29 @@ final class ContactRepository {
     }
 
     // Compatibility helpers for interaction CRUD without changing persistence structure.
-    func updateInteraction(contactID: UUID, interaction: Interaction) {
+    func updateInteraction(
+        contactID: UUID,
+        interaction: Interaction,
+        using interactionRepository: InteractionRepository? = nil
+    ) {
         guard interaction.contactId == contactID else { return }
-        let repository = InteractionRepository()
-        repository.load()
+        let repository = interactionRepository ?? InteractionRepository()
+        if interactionRepository == nil {
+            repository.load()
+        }
         repository.update(interaction)
         refreshLastInteractionDate(for: contactID, using: repository)
     }
 
-    func deleteInteraction(contactID: UUID, interactionID: UUID) {
-        let repository = InteractionRepository()
-        repository.load()
+    func deleteInteraction(
+        contactID: UUID,
+        interactionID: UUID,
+        using interactionRepository: InteractionRepository? = nil
+    ) {
+        let repository = interactionRepository ?? InteractionRepository()
+        if interactionRepository == nil {
+            repository.load()
+        }
         guard let interaction = repository.interactions.first(where: { $0.id == interactionID && $0.contactId == contactID }) else {
             return
         }
@@ -94,7 +114,7 @@ final class ContactRepository {
         guard let index = contacts.firstIndex(where: { $0.id == contactID }) else { return }
         let latestDate = repository
             .getInteractions(for: contactID)
-            .map(\.startDate)
+            .map(\.date)
             .max()
         contacts[index].lastInteractionDate = latestDate
         save()

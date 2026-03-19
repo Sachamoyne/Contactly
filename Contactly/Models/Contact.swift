@@ -5,6 +5,15 @@ enum RelationshipType: String, Codable, CaseIterable {
     case pro
     case perso
 
+    var sortOrder: Int {
+        switch self {
+        case .perso:
+            return 0
+        case .pro:
+            return 1
+        }
+    }
+
     var displayName: String {
         switch self {
         case .pro:
@@ -36,6 +45,40 @@ enum RelationshipType: String, Codable, CaseIterable {
     }
 }
 
+enum ImportantInfoType: String, Codable, CaseIterable, Hashable, Identifiable {
+    case birthday
+    case interest
+    case spouse
+    case children
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .birthday:
+            return "Birthday"
+        case .interest:
+            return "Interest"
+        case .spouse:
+            return "Spouse"
+        case .children:
+            return "Children"
+        }
+    }
+}
+
+struct ImportantInfo: Codable, Hashable, Identifiable {
+    var id: UUID
+    var type: ImportantInfoType
+    var value: String
+
+    init(id: UUID = UUID(), type: ImportantInfoType, value: String) {
+        self.id = id
+        self.type = type
+        self.value = value
+    }
+}
+
 struct Contact: Codable, Hashable, Identifiable {
     var id: UUID
     var firstName: String
@@ -47,8 +90,10 @@ struct Contact: Codable, Hashable, Identifiable {
     var tags: [String]
     var avatarPath: String?
     var createdAt: Date
+    var birthday: Date?
     var lastInteractionDate: Date?
     var relationshipType: RelationshipType
+    var importantInformation: [ImportantInfo]
 
     var fullName: String {
         [firstName, lastName].filter { !$0.isEmpty }.joined(separator: " ")
@@ -70,8 +115,10 @@ struct Contact: Codable, Hashable, Identifiable {
         tags: [String] = [],
         avatarPath: String? = nil,
         createdAt: Date = Date(),
+        birthday: Date? = nil,
         lastInteractionDate: Date? = nil,
-        relationshipType: RelationshipType = .perso
+        relationshipType: RelationshipType = .perso,
+        importantInformation: [ImportantInfo] = []
     ) {
         self.id = id
         self.firstName = firstName
@@ -83,8 +130,10 @@ struct Contact: Codable, Hashable, Identifiable {
         self.tags = tags
         self.avatarPath = avatarPath
         self.createdAt = createdAt
+        self.birthday = birthday
         self.lastInteractionDate = lastInteractionDate
         self.relationshipType = relationshipType
+        self.importantInformation = importantInformation
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -98,8 +147,10 @@ struct Contact: Codable, Hashable, Identifiable {
         case tags
         case avatarPath
         case createdAt
+        case birthday
         case lastInteractionDate
         case relationshipType
+        case importantInformation
     }
 
     init(from decoder: Decoder) throws {
@@ -114,9 +165,26 @@ struct Contact: Codable, Hashable, Identifiable {
         tags = try container.decode([String].self, forKey: .tags)
         avatarPath = try container.decodeIfPresent(String.self, forKey: .avatarPath)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
+        birthday = try container.decodeIfPresent(Date.self, forKey: .birthday)
         lastInteractionDate = try container.decodeIfPresent(Date.self, forKey: .lastInteractionDate)
         let storedRelationship = try container.decodeIfPresent(String.self, forKey: .relationshipType)
         relationshipType = RelationshipType.fromStoredValue(storedRelationship)
+        importantInformation = try container.decodeIfPresent([ImportantInfo].self, forKey: .importantInformation) ?? []
+
+        // Backward compatibility: hydrate the new field from legacy birthday important info if needed.
+        if birthday == nil,
+           let legacyBirthday = importantInformation.first(where: { $0.type == .birthday })?.value
+        {
+            birthday = Self.legacyBirthdayFormatter.date(from: legacyBirthday)
+        }
+    }
+
+    private static var legacyBirthdayFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
     }
 
     static let preview = Contact(

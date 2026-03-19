@@ -4,6 +4,7 @@ struct ContactView: View {
     let contact: Contact
     var viewModel: ContactsViewModel
     @Bindable var interactionRepository: InteractionRepository
+    @Environment(\.openURL) private var openURL
     @State private var showingEdit = false
     @State private var showingAddInteractionSheet = false
 
@@ -12,7 +13,19 @@ struct ContactView: View {
     }
 
     private var timelineInteractions: [Interaction] {
-        interactionRepository.getInteractions(for: currentContact.id)
+        interactionRepository.getContactTimeline(contactId: currentContact.id, limit: 50)
+    }
+
+    private var lastInteraction: Interaction? {
+        timelineInteractions.first
+    }
+
+    private var hasInteractions: Bool {
+        !timelineInteractions.isEmpty
+    }
+
+    private var latestInteractionDate: Date? {
+        timelineInteractions.map(\.date).max()
     }
 
     private var relationshipStatus: (status: String, daysSince: Int?) {
@@ -27,12 +40,14 @@ struct ContactView: View {
         relationshipType.color
     }
 
-    private var emptyTimelineMessage: String {
-        switch relationshipType {
-        case .pro:
-            return "Log your first interaction to start building this relationship."
-        case .perso:
-            return "Add a memory or interaction to keep in touch."
+    private var visibleImportantInformation: [ImportantInfo] {
+        currentContact.importantInformation.filter { info in
+            switch info.type {
+            case .birthday:
+                return true
+            case .interest, .spouse, .children:
+                return !info.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
         }
     }
 
@@ -66,9 +81,25 @@ struct ContactView: View {
                     Button(action: {
                         showingAddInteractionSheet = true
                     }) {
-                        Label("Add Interaction", systemImage: "plus")
+                        Label(hasInteractions ? "Add Interaction" : "Add first interaction", systemImage: "plus")
                     }
                     .buttonStyle(.borderedProminent)
+                    .labelStyle(.titleOnly)
+
+                    HStack(spacing: 18) {
+                        quickActionButton(systemImage: "phone.fill", isEnabled: !currentContact.phone.isEmpty) {
+                            callPhoneNumber(currentContact.phone)
+                        }
+
+                        quickActionButton(systemImage: "message.fill", isEnabled: !currentContact.phone.isEmpty) {
+                            messagePhoneNumber(currentContact.phone)
+                        }
+
+                        quickActionButton(systemImage: "envelope.fill", isEnabled: !currentContact.email.isEmpty) {
+                            openEmail(currentContact.email)
+                        }
+                    }
+                    .padding(.top, 4)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -116,79 +147,40 @@ struct ContactView: View {
             }
 
             Section {
-                if timelineInteractions.isEmpty {
-                    VStack(spacing: 10) {
-                        Image(systemName: "text.bubble")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-
-                        Text("No interactions yet")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-
-                        Text(emptyTimelineMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-
-                        Button("Add first interaction") {
-                            showingAddInteractionSheet = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                if let lastInteraction {
+                    lastInteractionCard(lastInteraction)
                 } else {
-                    ForEach(timelineInteractions) { interaction in
-                        NavigationLink {
-                            EditInteractionContainer(
-                                contact: currentContact,
-                                interaction: interaction,
-                                interactionRepository: interactionRepository
-                            )
-                        } label: {
-                            interactionCard(interaction)
-                        }
-                        .buttonStyle(.plain)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    interactionRepository.delete(interaction)
-                                }
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
+                    Text("No interactions yet.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                NavigationLink {
+                    ContactTimelineView(
+                        contact: currentContact,
+                        interactionRepository: interactionRepository
+                    )
+                } label: {
+                    HStack {
+                        Text("View timeline")
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
                     }
                 }
             } header: {
-                Text("Timeline")
+                Text("Last interaction")
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(relationshipType.color.opacity(0.85))
                     .textCase(nil)
             }
 
-            // MARK: Contact Info
-            if !currentContact.phone.isEmpty || !currentContact.email.isEmpty {
-                Section("Contact Info") {
-                    if !currentContact.phone.isEmpty {
-                        HStack {
-                            Label("Phone", systemImage: "phone")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(currentContact.phone)
-                        }
-                    }
-                    if !currentContact.email.isEmpty {
-                        HStack {
-                            Label("Email", systemImage: "envelope")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(currentContact.email)
-                        }
+            if !visibleImportantInformation.isEmpty {
+                Section("Important information") {
+                    ForEach(visibleImportantInformation) { info in
+                        LabeledContent(info.type.displayName, value: formattedImportantInformationValue(info))
                     }
                 }
             }
@@ -224,7 +216,14 @@ struct ContactView: View {
                     value: currentContact.createdAt.formatted(date: .abbreviated, time: .omitted)
                 )
 
-                if let lastInteraction = currentContact.lastInteractionDate {
+                if let birthday = currentContact.birthday {
+                    LabeledContent(
+                        "Birthday",
+                        value: birthday.formatted(date: .abbreviated, time: .omitted)
+                    )
+                }
+
+                if let lastInteraction = latestInteractionDate {
                     LabeledContent(
                         "Last Interaction",
                         value: lastInteraction.formatted(date: .abbreviated, time: .omitted)
@@ -244,7 +243,11 @@ struct ContactView: View {
             }
         }
         .sheet(isPresented: $showingEdit) {
-            EditContactView(viewModel: viewModel, contact: currentContact)
+            EditContactView(
+                viewModel: viewModel,
+                interactionRepository: interactionRepository,
+                contact: currentContact
+            )
         }
         .sheet(isPresented: $showingAddInteractionSheet) {
             AddInteractionView(
@@ -254,64 +257,87 @@ struct ContactView: View {
         }
     }
 
-    private func interactionCard(_ interaction: Interaction) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(interaction.startDate.formatted(date: .abbreviated, time: .omitted))
+    private func lastInteractionCard(_ interaction: Interaction) -> some View {
+        let displayText: String = {
+            let content = interaction.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !content.isEmpty { return content }
+
+            let title = interaction.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !title.isEmpty { return title }
+
+            return "Interaction"
+        }()
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(interaction.date.formatted(date: .abbreviated, time: .omitted))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Text(interaction.notes)
-                .font(.body)
+            Text(displayText)
+                .font(.body.weight(.semibold))
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let followUp = interaction.followUpDate {
-                Text("Follow up: \(followUp.formatted(date: .abbreviated, time: .omitted))")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.orange)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.orange.opacity(0.14))
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
         }
-        .padding(14)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .fadeInOnAppear()
-    }
-}
-
-private struct EditInteractionContainer: View {
-    let contact: Contact
-    var interaction: Interaction
-    @Bindable var interactionRepository: InteractionRepository
-    @State private var editableInteraction: Interaction
-
-    init(contact: Contact, interaction: Interaction, interactionRepository: InteractionRepository) {
-        self.contact = contact
-        self.interaction = interaction
-        self.interactionRepository = interactionRepository
-        _editableInteraction = State(initialValue: interaction)
     }
 
-    var body: some View {
-        EditInteractionView(
-            contact: contact,
-            interaction: $editableInteraction,
-            onSave: { updatedInteraction in
-                interactionRepository.update(updatedInteraction)
-            },
-            onDelete: { interactionToDelete in
-                interactionRepository.delete(interactionToDelete)
+    private func callPhoneNumber(_ value: String) {
+        let digits = normalizedPhoneNumber(value)
+        guard !digits.isEmpty, let url = URL(string: "tel://\(digits)") else { return }
+        openURL(url)
+    }
+
+    private func messagePhoneNumber(_ value: String) {
+        let digits = normalizedPhoneNumber(value)
+        guard !digits.isEmpty, let url = URL(string: "sms://\(digits)") else { return }
+        openURL(url)
+    }
+
+    private func openEmail(_ value: String) {
+        let email = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !email.isEmpty, let url = URL(string: "mailto:\(email)") else { return }
+        openURL(url)
+    }
+
+    private func normalizedPhoneNumber(_ value: String) -> String {
+        value.filter { $0.isNumber || $0 == "+" }
+    }
+
+    private func formattedImportantInformationValue(_ info: ImportantInfo) -> String {
+        switch info.type {
+        case .birthday:
+            if let date = birthdayStorageFormatter.date(from: info.value) {
+                return date.formatted(.dateTime.day().month(.abbreviated))
             }
-        )
+            return info.value
+        case .interest, .spouse, .children:
+            return info.value
+        }
+    }
+
+    private var birthdayStorageFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }
+
+    @ViewBuilder
+    private func quickActionButton(systemImage: String, isEnabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(isEnabled ? AppTheme.accent : .secondary)
+                .frame(width: 40, height: 40)
+                .background(
+                    Circle()
+                        .fill(isEnabled ? AppTheme.tintBackground : AppTheme.chipBackground)
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .accessibilityLabel(systemImage)
     }
 }

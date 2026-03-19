@@ -31,7 +31,8 @@ final class ContactImportService {
             CNContactFamilyNameKey as CNKeyDescriptor,
             CNContactFormatter.descriptorForRequiredKeys(for: .fullName),
             CNContactEmailAddressesKey as CNKeyDescriptor,
-            CNContactPhoneNumbersKey as CNKeyDescriptor
+            CNContactPhoneNumbersKey as CNKeyDescriptor,
+            CNContactBirthdayKey as CNKeyDescriptor
         ]
 
         let request = CNContactFetchRequest(keysToFetch: keys)
@@ -64,6 +65,7 @@ final class ContactImportService {
     private func mapToContact(_ cnContact: CNContact) -> Contact {
         let email = cnContact.emailAddresses.first?.value as String? ?? ""
         let phone = cnContact.phoneNumbers.first?.value.stringValue ?? ""
+        let birthday = extractBirthday(from: cnContact)
 
         let fallbackName = CNContactFormatter.string(from: cnContact, style: .fullName) ?? ""
         let firstName = cnContact.givenName.isEmpty ? fallbackName : cnContact.givenName
@@ -79,7 +81,14 @@ final class ContactImportService {
             tags: [],
             avatarPath: nil,
             createdAt: Date(),
+            birthday: birthday,
             lastInteractionDate: nil
         )
+    }
+
+    private func extractBirthday(from contact: CNContact) -> Date? {
+        // TODO: map device birthday (CNContact.birthday) once we define yearless/yearful handling.
+        _ = contact
+        return nil
     }
 }

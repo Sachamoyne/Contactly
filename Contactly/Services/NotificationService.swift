@@ -4,10 +4,13 @@ import UserNotifications
 
 @Observable
 final class NotificationService {
+    static let shared = NotificationService()
+
     private let center = UNUserNotificationCenter.current()
     private(set) var isAuthorized = false
     private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
     private let morningBriefingIdentifierPrefix = "morning-briefing-"
+    private let birthdayIdentifierPrefix = "birthday-"
 
     func requestAuthorization() async -> Bool {
         do {
@@ -147,5 +150,67 @@ final class NotificationService {
         if pending.contains(where: { $0.identifier == todayID }) {
             center.removePendingNotificationRequests(withIdentifiers: [todayID])
         }
+    }
+
+    func scheduleBirthdayNotification(for contact: Contact) {
+        let identifier = birthdayNotificationIdentifier(for: contact.id)
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        center.removeDeliveredNotifications(withIdentifiers: [identifier])
+
+        guard let birthday = contact.birthday else { return }
+
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.day, .month], from: birthday)
+        guard let day = components.day, let month = components.month else { return }
+
+        var triggerDate = DateComponents()
+        triggerDate.day = day
+        triggerDate.month = month
+        triggerDate.hour = 8
+        triggerDate.minute = 0
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: true)
+
+        let displayName = contact.fullName.isEmpty ? "this contact" : contact.fullName
+        let content = UNMutableNotificationContent()
+        content.title = "Birthday"
+        content.body = "Today is \(displayName)'s birthday."
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: trigger
+        )
+
+        center.add(request)
+    }
+
+    func removeBirthdayNotification(for contactID: UUID) {
+        let identifier = birthdayNotificationIdentifier(for: contactID)
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        center.removeDeliveredNotifications(withIdentifiers: [identifier])
+    }
+
+    func syncBirthdayNotifications(for contacts: [Contact]) {
+        let validIDs = Set(contacts.map(\.id).map(birthdayNotificationIdentifier(for:)))
+        center.getPendingNotificationRequests { [center] requests in
+            let staleIDs = requests
+                .map(\.identifier)
+                .filter { $0.hasPrefix(self.birthdayIdentifierPrefix) && !validIDs.contains($0) }
+
+            if !staleIDs.isEmpty {
+                center.removePendingNotificationRequests(withIdentifiers: staleIDs)
+                center.removeDeliveredNotifications(withIdentifiers: staleIDs)
+            }
+        }
+
+        for contact in contacts {
+            scheduleBirthdayNotification(for: contact)
+        }
+    }
+
+    private func birthdayNotificationIdentifier(for contactID: UUID) -> String {
+        "\(birthdayIdentifierPrefix)\(contactID.uuidString)"
     }
 }

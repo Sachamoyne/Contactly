@@ -5,6 +5,8 @@ import UserNotifications
 
 final class MorningBriefingAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     static var launchedFromMorningBriefingNotification = false
+    static var launchedFromPostMeetingNoteNotification: PostMeetingNotificationPayload?
+    private let postMeetingNotificationService = PostMeetingNotificationService()
 
     func application(
         _ application: UIApplication,
@@ -21,12 +23,20 @@ final class MorningBriefingAppDelegate: NSObject, UIApplicationDelegate, UNUserN
         if response.notification.request.identifier.hasPrefix("morning-briefing-") {
             Self.launchedFromMorningBriefingNotification = true
             NotificationCenter.default.post(name: .showMorningBriefingRequested, object: nil)
+            return
+        }
+
+        let userInfo = response.notification.request.content.userInfo
+        if let payload = postMeetingNotificationService.payload(from: userInfo) {
+            Self.launchedFromPostMeetingNoteNotification = payload
+            NotificationCenter.default.post(name: .showPostMeetingNoteRequested, object: payload)
         }
     }
 }
 
 extension Notification.Name {
     static let showMorningBriefingRequested = Notification.Name("ShowMorningBriefingRequested")
+    static let showPostMeetingNoteRequested = Notification.Name("ShowPostMeetingNoteRequested")
 }
 
 @main
@@ -44,10 +54,12 @@ struct ContactlyApp: App {
     @State private var contactsViewModel: ContactsViewModel
     @State private var interactionRepository: InteractionRepository
     @State private var showMorningBriefing = false
+    @State private var quickNoteContact: Contact?
 
     init() {
+        let notificationService = NotificationService.shared
         let settingsRepository = SettingsRepository()
-        let contactRepository = ContactRepository()
+        let contactRepository = ContactRepository(notificationService: notificationService)
         let manualMeetingRepository = ManualMeetingRepository()
         let interactionRepository = InteractionRepository()
         let contactsViewModel = ContactsViewModel(repository: contactRepository)
@@ -65,14 +77,16 @@ struct ContactlyApp: App {
             userProfileStore: userProfileStore,
             settingsRepository: settingsRepository,
             contactRepository: contactRepository,
-            manualMeetingRepository: manualMeetingRepository
+            manualMeetingRepository: manualMeetingRepository,
+            interactionRepository: interactionRepository,
+            postMeetingNotificationService: PostMeetingNotificationService()
         )
         _calendarService = State(initialValue: calendarService)
         _googleCalendarService = State(initialValue: googleCalendarService)
         _userProfileStore = State(initialValue: userProfileStore)
         _calendarAggregatorService = State(initialValue: calendarAggregatorService)
         _meetingService = State(initialValue: meetingService)
-        _notificationService = State(initialValue: NotificationService())
+        _notificationService = State(initialValue: notificationService)
         _settingsRepository = State(initialValue: settingsRepository)
         _contactsViewModel = State(initialValue: contactsViewModel)
         _interactionRepository = State(initialValue: interactionRepository)
@@ -106,6 +120,10 @@ struct ContactlyApp: App {
             .onReceive(NotificationCenter.default.publisher(for: .showMorningBriefingRequested)) { _ in
                 showMorningBriefing = true
             }
+            .onReceive(NotificationCenter.default.publisher(for: .showPostMeetingNoteRequested)) { notification in
+                guard let payload = notification.object as? PostMeetingNotificationPayload else { return }
+                openQuickNote(for: payload)
+            }
             .sheet(isPresented: $showMorningBriefing) {
                 MorningBriefingView(
                     calendarService: calendarService,
@@ -113,16 +131,29 @@ struct ContactlyApp: App {
                     interactionRepository: interactionRepository
                 )
             }
+            .sheet(item: $quickNoteContact) { contact in
+                AddInteractionView(
+                    contact: contact,
+                    interactionRepository: interactionRepository,
+                    preferredType: .note
+                )
+            }
             .task {
                 await notificationService.checkAuthorizationStatus()
                 if !notificationService.isAuthorized {
                     _ = await notificationService.requestAuthorization()
                 }
+                notificationService.syncBirthdayNotifications(for: contactsViewModel.repository.contacts)
                 await notificationService.scheduleMorningBriefing(calendarService: calendarService)
 
                 if MorningBriefingAppDelegate.launchedFromMorningBriefingNotification {
                     showMorningBriefing = true
                     MorningBriefingAppDelegate.launchedFromMorningBriefingNotification = false
+                }
+
+                if let payload = MorningBriefingAppDelegate.launchedFromPostMeetingNoteNotification {
+                    openQuickNote(for: payload)
+                    MorningBriefingAppDelegate.launchedFromPostMeetingNoteNotification = nil
                 }
             }
             .onChange(of: scenePhase) { _, newPhase in
@@ -132,9 +163,17 @@ struct ContactlyApp: App {
                     if !notificationService.isAuthorized {
                         _ = await notificationService.requestAuthorization()
                     }
+                    notificationService.syncBirthdayNotifications(for: contactsViewModel.repository.contacts)
                     await notificationService.scheduleMorningBriefing(calendarService: calendarService)
                 }
             }
         }
+    }
+
+    private func openQuickNote(for payload: PostMeetingNotificationPayload) {
+        guard let contact = contactsViewModel.repository.contacts.first(where: { $0.id == payload.contactId }) else {
+            return
+        }
+        quickNoteContact = contact
     }
 }

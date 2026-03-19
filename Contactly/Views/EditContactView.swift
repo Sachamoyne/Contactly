@@ -4,6 +4,7 @@ import UIKit
 
 struct EditContactView: View {
     var viewModel: ContactsViewModel
+    var interactionRepository: InteractionRepository?
     @Environment(\.dismiss) private var dismiss
 
     private let existingContact: Contact?
@@ -15,7 +16,10 @@ struct EditContactView: View {
     @State private var email: String
     @State private var notes: String
     @State private var tags: [String]
+    @State private var importantInformation: [ImportantInfo]
+    @State private var birthday: Date?
     @State private var newTag: String = ""
+    @State private var showingAddImportantField = false
     @State private var lastInteractionDate: Date?
     @State private var hasLastInteraction: Bool
     @State private var relationshipType: RelationshipType
@@ -28,9 +32,31 @@ struct EditContactView: View {
             && lastName.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    init(viewModel: ContactsViewModel, contact: Contact? = nil) {
+    init(
+        viewModel: ContactsViewModel,
+        interactionRepository: InteractionRepository? = nil,
+        contact: Contact? = nil
+    ) {
         self.viewModel = viewModel
+        self.interactionRepository = interactionRepository
         self.existingContact = contact
+        let initialBirthday: Date? = {
+            if let storedBirthday = contact?.birthday {
+                return storedBirthday
+            }
+
+            guard
+                let legacyBirthday = contact?.importantInformation.first(where: { $0.type == .birthday })?.value
+            else {
+                return nil
+            }
+
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.calendar = Calendar(identifier: .gregorian)
+            formatter.dateFormat = "yyyy-MM-dd"
+            return formatter.date(from: legacyBirthday)
+        }()
         _firstName = State(initialValue: contact?.firstName ?? "")
         _lastName = State(initialValue: contact?.lastName ?? "")
         _company = State(initialValue: contact?.company ?? "")
@@ -38,6 +64,8 @@ struct EditContactView: View {
         _email = State(initialValue: contact?.email ?? "")
         _notes = State(initialValue: contact?.notes ?? "")
         _tags = State(initialValue: contact?.tags ?? [])
+        _importantInformation = State(initialValue: contact?.importantInformation ?? [])
+        _birthday = State(initialValue: initialBirthday)
         _lastInteractionDate = State(initialValue: contact?.lastInteractionDate)
         _hasLastInteraction = State(initialValue: contact?.lastInteractionDate != nil)
         _relationshipType = State(initialValue: contact?.relationshipType ?? .perso)
@@ -104,6 +132,70 @@ struct EditContactView: View {
                         .textContentType(.emailAddress)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
+                }
+
+                Section("Birthday") {
+                    if let birthday {
+                        DatePicker(
+                            "Birthday",
+                            selection: Binding(
+                                get: { birthday },
+                                set: { self.birthday = $0 }
+                            ),
+                            displayedComponents: .date
+                        )
+
+                        Button("Remove birthday", role: .destructive) {
+                            self.birthday = nil
+                        }
+                    } else {
+                        Button("Add birthday") {
+                            birthday = Date()
+                        }
+                    }
+                }
+
+                Section("Important information") {
+                    ForEach($importantInformation) { $info in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text(info.type.displayName)
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Button(role: .destructive) {
+                                    removeImportantField(id: info.id)
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            switch info.type {
+                            case .birthday:
+                                DatePicker(
+                                    "Date",
+                                    selection: Binding(
+                                        get: { birthdayDate(from: info.value) ?? Date() },
+                                        set: { info.value = storedBirthdayValue(from: $0) }
+                                    ),
+                                    displayedComponents: .date
+                                )
+                            case .interest:
+                                TextField("Enter interest", text: $info.value)
+                            case .spouse:
+                                TextField("Enter spouse name", text: $info.value)
+                            case .children:
+                                TextField("Enter children", text: $info.value)
+                            }
+                        }
+                    }
+
+                    Button {
+                        showingAddImportantField = true
+                    } label: {
+                        Label("Add field", systemImage: "plus")
+                    }
+                    .disabled(addableImportantTypes.isEmpty)
                 }
 
                 Section("Tags") {
@@ -184,6 +276,14 @@ struct EditContactView: View {
                     await loadSelectedImage(from: newItem)
                 }
             }
+            .confirmationDialog("Add important field", isPresented: $showingAddImportantField, titleVisibility: .visible) {
+                ForEach(addableImportantTypes) { type in
+                    Button(type.displayName) {
+                        addImportantField(type)
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            }
         }
     }
 
@@ -244,6 +344,8 @@ struct EditContactView: View {
 
     private func saveContact() {
         let contactID = existingContact?.id ?? UUID()
+        let oldNotes = existingContact?.notes ?? ""
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         var finalAvatarPath = avatarPath
 
         if let selectedAvatarImage {
@@ -259,10 +361,13 @@ struct EditContactView: View {
             updated.email = email.trimmingCharacters(in: .whitespaces)
             updated.notes = notes
             updated.tags = tags
+            updated.importantInformation = normalizedImportantInformation()
+            updated.birthday = birthday
             updated.lastInteractionDate = hasLastInteraction ? (lastInteractionDate ?? Date()) : nil
             updated.avatarPath = finalAvatarPath
             updated.relationshipType = relationshipType
             viewModel.updateContact(updated)
+            createNoteInteractionIfNeeded(contact: updated, oldNotes: oldNotes, newNotes: trimmedNotes)
         } else {
             let contact = Contact(
                 id: contactID,
@@ -274,12 +379,35 @@ struct EditContactView: View {
                 notes: notes,
                 tags: tags,
                 avatarPath: finalAvatarPath,
+                birthday: birthday,
                 lastInteractionDate: hasLastInteraction ? (lastInteractionDate ?? Date()) : nil,
-                relationshipType: relationshipType
+                relationshipType: relationshipType,
+                importantInformation: normalizedImportantInformation()
             )
             viewModel.addContact(contact)
+            createNoteInteractionIfNeeded(contact: contact, oldNotes: "", newNotes: trimmedNotes)
         }
         dismiss()
+    }
+
+    private func createNoteInteractionIfNeeded(contact: Contact, oldNotes: String, newNotes: String) {
+        guard let interactionRepository else { return }
+        let normalizedOld = oldNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !newNotes.isEmpty, newNotes != normalizedOld else { return }
+
+        let notePreview = String(newNotes.prefix(200))
+        let timestamp = Date()
+        let interaction = Interaction(
+            contactId: contact.id,
+            type: .note,
+            date: timestamp,
+            title: "Note added",
+            startDate: timestamp,
+            endDate: timestamp,
+            notes: notePreview,
+            tagsSnapshot: contact.tags
+        )
+        interactionRepository.add(interaction)
     }
 
     private func persistAvatarImage(_ image: UIImage, for contactID: UUID) -> String? {
@@ -302,5 +430,51 @@ struct EditContactView: View {
         } catch {
             return avatarPath
         }
+    }
+
+    private var addableImportantTypes: [ImportantInfoType] {
+        ImportantInfoType.allCases.filter { type in
+            !importantInformation.contains(where: { $0.type == type })
+        }
+    }
+
+    private func addImportantField(_ type: ImportantInfoType) {
+        let defaultValue = type == .birthday ? storedBirthdayValue(from: Date()) : ""
+        importantInformation.append(ImportantInfo(type: type, value: defaultValue))
+    }
+
+    private func removeImportantField(id: UUID) {
+        importantInformation.removeAll { $0.id == id }
+    }
+
+    private func birthdayDate(from value: String) -> Date? {
+        birthdayStorageFormatter.date(from: value)
+    }
+
+    private func storedBirthdayValue(from date: Date) -> String {
+        birthdayStorageFormatter.string(from: date)
+    }
+
+    private func normalizedImportantInformation() -> [ImportantInfo] {
+        importantInformation.compactMap { info in
+            switch info.type {
+            case .birthday:
+                return info
+            case .interest, .spouse, .children:
+                let trimmed = info.value.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return nil }
+                var normalized = info
+                normalized.value = trimmed
+                return normalized
+            }
+        }
+    }
+
+    private var birthdayStorageFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
     }
 }
