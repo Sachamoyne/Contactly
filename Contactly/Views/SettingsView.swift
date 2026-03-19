@@ -18,6 +18,7 @@ struct SettingsView: View {
     @State private var showingContactImportDialog = false
     @State private var showingContactPicker = false
     @State private var showingPermissionDeniedAlert = false
+    @State private var showingContactsPermissionAlert = false
     @State private var showingErrorAlert = false
     @State private var showingClearContactsConfirmation = false
     @State private var isWorking = false
@@ -124,22 +125,53 @@ struct SettingsView: View {
 
             Button("Cancel", role: .cancel) {}
         }
-        .confirmationDialog("Import Contacts", isPresented: $showingContactImportDialog) {
-            Button("Choose Contacts") {
-                Task {
-                    await prepareContactPicker()
+        .sheet(isPresented: $showingContactImportDialog) {
+            NavigationStack {
+                List {
+                    Section {
+                        Button("Choose Contacts") {
+                            Task {
+                                await startContactImportFlow()
+                            }
+                        }
+                    }
+                }
+                .navigationTitle("Import Contacts")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            showingContactImportDialog = false
+                        }
+                    }
                 }
             }
-
-            Button("Cancel", role: .cancel) {}
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
-        .confirmationDialog("Clear all imported contacts?", isPresented: $showingClearContactsConfirmation) {
-            Button("Clear Contacts", role: .destructive) {
-                contactsViewModel.clearAllContacts()
-                showToastMessage("Contacts cleared")
+        .sheet(isPresented: $showingClearContactsConfirmation) {
+            NavigationStack {
+                List {
+                    Section {
+                        Button("Clear Contacts", role: .destructive) {
+                            showingClearContactsConfirmation = false
+                            contactsViewModel.clearAllContacts()
+                            showToastMessage("Contacts cleared")
+                        }
+                    }
+                }
+                .navigationTitle("Clear Imported Contacts")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            showingClearContactsConfirmation = false
+                        }
+                    }
+                }
             }
-
-            Button("Cancel", role: .cancel) {}
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingContactPicker) {
             ContactPickerSheet(
@@ -158,6 +190,14 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Please allow access in iOS Settings to continue.")
+        }
+        .alert("Autoriser l’accès aux contacts ?", isPresented: $showingContactsPermissionAlert) {
+            Button("Ouvrir Réglages") {
+                openAppSettings()
+            }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("Pour importer vos contacts, activez l’accès Contacts dans Réglages.")
         }
         .alert("Settings", isPresented: $showingErrorAlert) {
             Button("OK", role: .cancel) {}
@@ -299,11 +339,17 @@ struct SettingsView: View {
     private func prepareContactPicker() async {
         let hasAccess = await importService.requestAccess()
         guard hasAccess else {
-            showingPermissionDeniedAlert = true
+            showingContactsPermissionAlert = true
             return
         }
 
         showingContactPicker = true
+    }
+
+    private func startContactImportFlow() async {
+        showingContactImportDialog = false
+        try? await Task.sleep(for: .milliseconds(150))
+        await prepareContactPicker()
     }
 
     private func importSelectedContacts(_ contacts: [CNContact]) async {

@@ -41,13 +41,13 @@ struct ContactsImportView: View {
                 onCancel: {}
             )
         }
-        .alert("Contacts Access Needed", isPresented: $showPermissionDeniedAlert) {
-            Button("Open Settings") {
+        .alert("Autoriser l’accès aux contacts ?", isPresented: $showPermissionDeniedAlert) {
+            Button("Ouvrir Réglages") {
                 openAppSettings()
             }
-            Button("Cancel", role: .cancel) {}
+            Button("Annuler", role: .cancel) {}
         } message: {
-            Text("Please allow Contacts access in Settings to import your iPhone contacts.")
+            Text("Pour importer vos contacts, activez l’accès Contacts dans Réglages.")
         }
         .overlay {
             if isImporting {
@@ -149,4 +149,5 @@ struct ContactsImportView: View {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
     }
+
 }

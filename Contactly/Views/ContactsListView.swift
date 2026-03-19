@@ -3,6 +3,11 @@ import SwiftUI
 import UIKit
 
 struct ContactsListView: View {
+    enum ContactSortOption {
+        case alphabetical
+        case type
+    }
+
     @Bindable var viewModel: ContactsViewModel
     var interactionRepository: InteractionRepository
 
@@ -14,8 +19,22 @@ struct ContactsListView: View {
     @State private var showPermissionDeniedAlert = false
     @State private var showToast = false
     @State private var toastMessage = ""
+    @State private var sortOption: ContactSortOption = .alphabetical
     @FocusState private var isSearchFocused: Bool
     private var hasAnyContacts: Bool { !viewModel.repository.contacts.isEmpty }
+    private var sortedContacts: [Contact] {
+        switch sortOption {
+        case .alphabetical:
+            return viewModel.filteredContacts
+        case .type:
+            return viewModel.filteredContacts.sorted { lhs, rhs in
+                if lhs.relationshipType == rhs.relationshipType {
+                    return lhs.fullName.localizedCaseInsensitiveCompare(rhs.fullName) == .orderedAscending
+                }
+                return lhs.relationshipType.sortOrder < rhs.relationshipType.sortOrder
+            }
+        }
+    }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -76,7 +95,7 @@ struct ContactsListView: View {
                     )
 
                     Group {
-                        if viewModel.filteredContacts.isEmpty {
+                        if sortedContacts.isEmpty {
                             ContentUnavailableView(
                                 "No Results",
                                 systemImage: "magnifyingglass",
@@ -84,7 +103,7 @@ struct ContactsListView: View {
                             )
                         } else {
                             List {
-                                ForEach(viewModel.filteredContacts) { contact in
+                                ForEach(sortedContacts) { contact in
                                     NavigationLink(value: contact) {
                                         ContactRowView(contact: contact)
                                     }
@@ -94,7 +113,7 @@ struct ContactsListView: View {
                                     .listRowBackground(Color.clear)
                                 }
                                 .onDelete { offsets in
-                                    viewModel.deleteContacts(at: offsets)
+                                    viewModel.repository.delete(at: offsets, in: sortedContacts)
                                 }
                             }
                             .scrollContentBackground(.hidden)
@@ -126,6 +145,19 @@ struct ContactsListView: View {
         .background(Color(uiColor: .systemBackground))
         .navigationTitle("Contacts")
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Alphabetical") {
+                        sortOption = .alphabetical
+                    }
+                    Button("By type") {
+                        sortOption = .type
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
+                }
+                .buttonStyle(PressScaleButtonStyle())
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button("Import") {
                     showingImportDialog = true
@@ -142,7 +174,32 @@ struct ContactsListView: View {
             )
         }
         .sheet(isPresented: $showingAddContact) {
-            EditContactView(viewModel: viewModel)
+            EditContactView(viewModel: viewModel, interactionRepository: interactionRepository)
+        }
+        .sheet(isPresented: $showingImportDialog) {
+            NavigationStack {
+                List {
+                    Section {
+                        Button("Select Contacts") {
+                            showingImportDialog = false
+                            Task {
+                                await prepareContactPicker()
+                            }
+                        }
+                    }
+                }
+                .navigationTitle("Import Contacts")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            showingImportDialog = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
         .fullScreenCover(isPresented: $showingContactPicker) {
             ContactPickerSheet(
@@ -157,22 +214,13 @@ struct ContactsListView: View {
             )
             .ignoresSafeArea()
         }
-        .confirmationDialog("Import Contacts", isPresented: $showingImportDialog) {
-            Button("Select Contacts") {
-                Task {
-                    await prepareContactPicker()
-                }
-            }
-
-            Button("Cancel", role: .cancel) {}
-        }
-        .alert("Contacts Access Needed", isPresented: $showPermissionDeniedAlert) {
-            Button("Open Settings") {
+        .alert("Autoriser l’accès aux contacts ?", isPresented: $showPermissionDeniedAlert) {
+            Button("Ouvrir Réglages") {
                 openAppSettings()
             }
-            Button("Cancel", role: .cancel) {}
+            Button("Annuler", role: .cancel) {}
         } message: {
-            Text("Please allow Contacts access in Settings to import your iPhone contacts.")
+            Text("Pour importer vos contacts, activez l’accès Contacts dans Réglages.")
         }
         .overlay {
             if isImporting {
@@ -285,6 +333,7 @@ struct ContactsListView: View {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
     }
+
 }
 
 private struct ContactRowView: View {

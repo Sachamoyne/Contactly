@@ -41,40 +41,56 @@ final class InteractionRepository {
     }
 
     func listByContact(contactId: UUID) -> [Interaction] {
-        interactions
-            .filter { $0.contactId == contactId }
-            .sorted { $0.startDate > $1.startDate }
+        getContactTimeline(contactId: contactId)
     }
 
     func getInteractions(for contactId: UUID) -> [Interaction] {
+        getContactTimeline(contactId: contactId)
+    }
+
+    func getContactTimeline(contactId: UUID, limit: Int = 50) -> [Interaction] {
         interactions
             .filter { $0.contactId == contactId }
-            .sorted { $0.startDate > $1.startDate }
+            .sorted { $0.date > $1.date }
+            .prefix(limit)
+            .map { $0 }
     }
 
     func listRecent(limit: Int) -> [Interaction] {
         interactions
-            .sorted { $0.startDate > $1.startDate }
+            .sorted { $0.date > $1.date }
             .prefix(limit)
             .map { $0 }
     }
 
     func listForDateRange(from startDate: Date, to endDate: Date) -> [Interaction] {
         interactions
-            .filter { $0.startDate >= startDate && $0.startDate <= endDate }
-            .sorted { $0.startDate > $1.startDate }
+            .filter { $0.date >= startDate && $0.date <= endDate }
+            .sorted { $0.date > $1.date }
     }
 
     func hasInteraction(eventId: String?, startDate: Date) -> Bool {
+        hasInteraction(contactId: nil, eventId: eventId, date: startDate)
+    }
+
+    func hasInteraction(contactId: UUID? = nil, eventId: String?, date: Date) -> Bool {
         if let eventId, !eventId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return interactions.contains {
-                $0.eventId == eventId && Calendar.current.isDate($0.startDate, equalTo: startDate, toGranularity: .minute)
+                contactMatches($0, contactId: contactId)
+                    && $0.eventId == eventId
+                    && Calendar.current.isDate($0.date, equalTo: date, toGranularity: .minute)
             }
         }
 
         return interactions.contains {
-            Calendar.current.isDate($0.startDate, equalTo: startDate, toGranularity: .minute)
+            contactMatches($0, contactId: contactId)
+                && Calendar.current.isDate($0.date, equalTo: date, toGranularity: .minute)
         }
+    }
+
+    private func contactMatches(_ interaction: Interaction, contactId: UUID?) -> Bool {
+        guard let contactId else { return true }
+        return interaction.contactId == contactId
     }
 
     func getPendingFollowUps() -> [Interaction] {
@@ -103,7 +119,7 @@ final class InteractionRepository {
     func getLastInteraction(for contactId: UUID) -> Interaction? {
         interactions
             .filter { $0.contactId == contactId }
-            .max(by: { $0.startDate < $1.startDate })
+            .max(by: { $0.date < $1.date })
     }
 
     func getRelationshipStatus(for contactId: UUID) -> (status: String, daysSince: Int?) {
@@ -113,7 +129,7 @@ final class InteractionRepository {
 
         let days = Calendar.current.dateComponents(
             [.day],
-            from: Calendar.current.startOfDay(for: lastInteraction.startDate),
+            from: Calendar.current.startOfDay(for: lastInteraction.date),
             to: Calendar.current.startOfDay(for: Date())
         ).day ?? 0
 

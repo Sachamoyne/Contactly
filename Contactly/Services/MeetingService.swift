@@ -8,6 +8,8 @@ final class MeetingService {
     private let settingsRepository: SettingsRepository
     private let contactRepository: ContactRepository
     private let manualMeetingRepository: ManualMeetingRepository
+    private let interactionRepository: InteractionRepository
+    private let postMeetingNotificationService: PostMeetingNotificationService
     private let analyzer = EventRelevanceAnalyzer()
 
     init(
@@ -16,7 +18,9 @@ final class MeetingService {
         userProfileStore: UserProfileStore,
         settingsRepository: SettingsRepository,
         contactRepository: ContactRepository,
-        manualMeetingRepository: ManualMeetingRepository
+        manualMeetingRepository: ManualMeetingRepository,
+        interactionRepository: InteractionRepository,
+        postMeetingNotificationService: PostMeetingNotificationService
     ) {
         self.calendarService = calendarService
         self.googleCalendarService = googleCalendarService
@@ -24,6 +28,8 @@ final class MeetingService {
         self.settingsRepository = settingsRepository
         self.contactRepository = contactRepository
         self.manualMeetingRepository = manualMeetingRepository
+        self.interactionRepository = interactionRepository
+        self.postMeetingNotificationService = postMeetingNotificationService
     }
 
     var isCalendarAccessDenied: Bool {
@@ -48,6 +54,7 @@ final class MeetingService {
                 do {
                     let googleEvents = try await googleCalendarService.fetchUpcomingSyncedEvents(from: date, daysAhead: 1)
                     allEvents.append(contentsOf: googleEvents)
+                    syncGoogleCalendarInteractions(from: googleEvents)
                 } catch {
                     if isRecoverableCalendarSyncError(error) {
                         continue
@@ -139,5 +146,53 @@ final class MeetingService {
         default:
             return false
         }
+    }
+
+    private func syncGoogleCalendarInteractions(from events: [SyncedCalendarEvent]) {
+        let currentEmail = normalizeEmail(currentUserEmail())
+        let contactsByEmail = Dictionary(
+            uniqueKeysWithValues: contactRepository.contacts.compactMap { contact -> (String, Contact)? in
+                let email = normalizeEmail(contact.email)
+                guard !email.isEmpty else { return nil }
+                return (email, contact)
+            }
+        )
+
+        for event in events {
+            let attendees = Set(event.attendeeEmails.map(normalizeEmail).filter { !$0.isEmpty })
+            let nonSelfAttendees = attendees.filter { attendee in
+                currentEmail.isEmpty || attendee != currentEmail
+            }
+
+            for attendee in nonSelfAttendees {
+                guard let contact = contactsByEmail[attendee] else { continue }
+                if !interactionRepository.hasInteraction(contactId: contact.id, eventId: event.id, date: event.startDate) {
+                    let interaction = Interaction(
+                        contactId: contact.id,
+                        type: .meeting,
+                        date: event.startDate,
+                        eventId: event.id,
+                        title: "Meeting (Google Calendar)",
+                        metadata: ["calendarEventId": event.id],
+                        startDate: event.startDate,
+                        endDate: event.endDate,
+                        notes: "",
+                        tagsSnapshot: contact.tags
+                    )
+                    interactionRepository.add(interaction)
+                }
+
+                postMeetingNotificationService.schedulePostMeetingNote(
+                    contactId: contact.id,
+                    contactName: contact.fullName.isEmpty ? "this contact" : contact.fullName,
+                    eventId: event.id,
+                    meetingEndDate: event.endDate
+                )
+            }
+        }
+    }
+
+    private func normalizeEmail(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 }

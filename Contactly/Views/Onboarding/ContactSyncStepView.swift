@@ -1,12 +1,10 @@
 import Contacts
 import SwiftUI
-import UIKit
 
 struct ContactSyncStepView: View {
     @Bindable var viewModel: OnboardingViewModel
 
     @State private var showingPicker = false
-    @State private var showingPermissionAlert = false
     private let primaryBlue = Color(red: 37 / 255, green: 99 / 255, blue: 235 / 255)
 
     var body: some View {
@@ -58,14 +56,6 @@ struct ContactSyncStepView: View {
                 onCancel: {}
             )
         }
-        .alert("Contacts Access Needed", isPresented: $showingPermissionAlert) {
-            Button("Open Settings") {
-                openSettings()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Allow contacts access in Settings to sync your address book.")
-        }
     }
 
     private func actionButton(_ title: String, action: @escaping () -> Void) -> some View {
@@ -85,9 +75,6 @@ struct ContactSyncStepView: View {
 
     private func syncAll() async {
         await viewModel.importAllContactsAndContinue()
-        if viewModel.errorMessage != nil {
-            showingPermissionAlert = true
-        }
     }
 
     private func selectContacts() async {
@@ -97,10 +84,5 @@ struct ContactSyncStepView: View {
             return
         }
         showingPicker = true
-    }
-
-    private func openSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
     }
 }

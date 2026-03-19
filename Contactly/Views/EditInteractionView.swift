@@ -86,6 +86,7 @@ struct EditInteractionView: View {
 
     private func saveInteraction() {
         interaction.notes = interaction.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        interaction.date = interaction.startDate
         interaction.followUpDate = hasFollowUpDate ? interaction.followUpDate : nil
         withAnimation(.easeInOut(duration: 0.2)) {
             onSave(interaction)

@@ -8,14 +8,15 @@ struct AddInteractionView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var interactionDate: Date
-    @State private var interactionType: InteractionType
+    @State private var interactionType: InteractionKind
     @State private var notes: String = ""
     @State private var hasFollowUpDate = false
     @State private var followUpDate = Date()
 
     var onSaved: (() -> Void)?
 
-    enum InteractionType: String, CaseIterable, Identifiable {
+    enum InteractionKind: String, CaseIterable, Identifiable {
+        case note
         case general
         case call
         case email
@@ -26,6 +27,8 @@ struct AddInteractionView: View {
 
         var displayName: String {
             switch self {
+            case .note:
+                return "Note"
             case .general:
                 return "General"
             case .call:
@@ -36,6 +39,19 @@ struct AddInteractionView: View {
                 return "Message"
             case .inPerson:
                 return "In Person"
+            }
+        }
+
+        var modelType: InteractionType {
+            switch self {
+            case .note:
+                return .note
+            case .call:
+                return .call
+            case .message, .email:
+                return .message
+            case .general, .inPerson:
+                return .other
             }
         }
     }
@@ -57,6 +73,7 @@ struct AddInteractionView: View {
     init(
         contact: Contact,
         interactionRepository: InteractionRepository,
+        preferredType: InteractionKind = .general,
         onSaved: (() -> Void)? = nil
     ) {
         self.meeting = nil
@@ -64,7 +81,7 @@ struct AddInteractionView: View {
         self.interactionRepository = interactionRepository
         self.onSaved = onSaved
         _interactionDate = State(initialValue: Date())
-        _interactionType = State(initialValue: .general)
+        _interactionType = State(initialValue: preferredType)
     }
 
     var body: some View {
@@ -79,7 +96,7 @@ struct AddInteractionView: View {
                     } else {
                         DatePicker("Date", selection: $interactionDate, displayedComponents: [.date, .hourAndMinute])
                         Picker("Type", selection: $interactionType) {
-                            ForEach(InteractionType.allCases) { type in
+                            ForEach(InteractionKind.allCases) { type in
                                 Text(type.displayName).tag(type)
                             }
                         }
@@ -119,12 +136,15 @@ struct AddInteractionView: View {
     }
 
     private func saveInteraction() {
-        let title = meeting?.title ?? interactionType.displayName
+        let interactionModelType: InteractionType = meeting == nil ? interactionType.modelType : .meeting
+        let title = meeting == nil ? interactionType.displayName : "Meeting"
         let startDate = meeting?.startDate ?? interactionDate
         let endDate = meeting?.endDate ?? interactionDate
 
         let interaction = Interaction(
             contactId: contact.id,
+            type: interactionModelType,
+            date: startDate,
             eventId: meeting?.id,
             title: title,
             startDate: startDate,

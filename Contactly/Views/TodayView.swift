@@ -168,7 +168,11 @@ struct TodayView: View {
             }
         }
         .sheet(item: $createdContactForEditing) { contact in
-            EditContactView(viewModel: contactsViewModel, contact: contact)
+            EditContactView(
+                viewModel: contactsViewModel,
+                interactionRepository: interactionRepository,
+                contact: contact
+            )
         }
         .alert("Contact already exists", isPresented: $showingContactExistsAlert) {
             Button("OK", role: .cancel) { }

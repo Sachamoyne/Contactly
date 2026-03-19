@@ -6,7 +6,7 @@ struct OnboardingView: View {
 
     @State private var importService = ContactImportService()
     @State private var isImporting = false
-    @State private var showErrorAlert = false
+    @State private var showImportErrorMessage = false
 
     var body: some View {
         ZStack {
@@ -43,7 +43,7 @@ struct OnboardingView: View {
                             await importAllContactsAndFinishOnboarding()
                         }
                     } label: {
-                        Text("Importer tous mes contacts")
+                        Text("Continue")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -56,13 +56,12 @@ struct OnboardingView: View {
                     .buttonStyle(PressScaleButtonStyle())
                     .disabled(isImporting)
 
-                    Button("Continuer sans importer") {
-                        userProfileStore.completeOnboarding()
+                    if showImportErrorMessage {
+                        Text("Unable to import all contacts right now. Please try again.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .buttonStyle(PressScaleButtonStyle())
-                    .disabled(isImporting)
                 }
                 .padding(.bottom, 40)
             }
@@ -79,29 +78,30 @@ struct OnboardingView: View {
                 }
             }
         }
-        .alert("Import Failed", isPresented: $showErrorAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Unable to import all contacts right now. Please try again.")
-        }
     }
 
     private func importAllContactsAndFinishOnboarding() async {
-        let hasAccess = await importService.requestAccess()
-        if hasAccess {
-            isImporting = true
-            defer { isImporting = false }
+        showImportErrorMessage = false
 
-            do {
-                let rawContacts = try await importService.fetchAllContactsAsync()
-                let mappedContacts = importService.mapContacts(rawContacts)
-                let importedCount = saveUniqueContacts(mappedContacts)
-                print("[ContactImport] Imported \(importedCount) / \(mappedContacts.count) contacts during onboarding.")
-            } catch {
-                showErrorAlert = true
-                return
-            }
+        let hasAccess = await importService.requestAccess()
+        guard hasAccess else {
+            userProfileStore.completeOnboarding()
+            return
         }
+
+        isImporting = true
+        defer { isImporting = false }
+
+        do {
+            let rawContacts = try await importService.fetchAllContactsAsync()
+            let mappedContacts = importService.mapContacts(rawContacts)
+            let importedCount = saveUniqueContacts(mappedContacts)
+            print("[ContactImport] Imported \(importedCount) / \(mappedContacts.count) contacts during onboarding.")
+        } catch {
+            showImportErrorMessage = true
+            return
+        }
+
         userProfileStore.completeOnboarding()
     }
 
